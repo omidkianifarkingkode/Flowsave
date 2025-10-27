@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Provides a high level API for persisting and loading data within a specific namespace.

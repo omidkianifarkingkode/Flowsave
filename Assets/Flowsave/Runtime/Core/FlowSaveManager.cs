@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Central registry that manages <see cref="FlowSaveContext"/> instances.

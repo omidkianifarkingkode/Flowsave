@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using UnityEngine;
 
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Serializer implementation that delegates to <see cref="JsonUtility"/>.

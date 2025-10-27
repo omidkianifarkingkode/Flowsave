@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Persists save data to disk using the local filesystem.

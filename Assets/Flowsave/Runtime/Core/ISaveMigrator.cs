@@ -1,4 +1,4 @@
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Describes a strategy for migrating persisted payloads between versions.

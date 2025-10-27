@@ -1,6 +1,6 @@
 using System;
 
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Defines low level persistence operations for FlowSave contexts.

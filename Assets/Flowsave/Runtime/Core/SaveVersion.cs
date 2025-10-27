@@ -1,6 +1,6 @@
 using System;
 
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Represents the semantic version of a save payload.

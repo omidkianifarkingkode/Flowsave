@@ -1,4 +1,4 @@
-namespace Flowcast.FlowSave
+namespace FlowSave
 {
     /// <summary>
     /// Optional service that encrypts and decrypts payloads before persistence.
