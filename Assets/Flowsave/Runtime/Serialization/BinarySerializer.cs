@@ -1,8 +1,8 @@
-﻿using Flowsave.Configurations;
+﻿using Flowsave.Shared;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace FlowSave
+namespace Flowsave.Serialization
 {
     public class BinarySerializer : ISerializer
     {

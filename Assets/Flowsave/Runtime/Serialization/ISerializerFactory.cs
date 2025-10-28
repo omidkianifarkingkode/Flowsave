@@ -1,7 +1,7 @@
-﻿using Flowsave.Configurations;
+﻿using Flowsave.Shared;
 using System;
 
-namespace FlowSave
+namespace Flowsave.Serialization
 {
     public interface ISerializerFactory
     {

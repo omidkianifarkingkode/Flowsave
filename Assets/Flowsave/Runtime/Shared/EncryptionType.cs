@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Configurations
+﻿namespace Flowsave.Shared
 {
     public enum EncryptionType
     {
@@ -6,5 +6,4 @@
         RSA,
         Custom
     }
-
 }

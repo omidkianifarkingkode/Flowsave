@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace FlowSave
+namespace Flowsave.StorageProviders
 {
     public class PlayerPrefsStorageProvider : IStorageProvider
     {

@@ -3,7 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace FlowSave.Security
+namespace Flowsave.Security
 {
     public static class SecurityHelper
     {

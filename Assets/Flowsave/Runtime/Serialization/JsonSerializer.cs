@@ -1,8 +1,8 @@
-﻿using Flowsave.Configurations;
+﻿using Flowsave.Shared;
 using System.Text;
 using Unity.Plastic.Newtonsoft.Json;
 
-namespace FlowSave
+namespace Flowsave.Serialization
 {
     public class JsonSerializer : ISerializer
     {

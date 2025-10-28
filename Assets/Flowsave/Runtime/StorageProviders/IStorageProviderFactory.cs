@@ -1,7 +1,7 @@
 ﻿using Flowsave.Configurations;
 using System;
 
-namespace FlowSave
+namespace Flowsave.StorageProviders
 {
     public interface IStorageProviderFactory
     {

@@ -1,8 +1,8 @@
-﻿using FlowSave.Configurations;
+﻿using Flowsave.Configurations;
 using System;
 using System.Threading.Tasks;
 
-namespace FlowSave
+namespace Flowsave
 {
     public interface IFlowSaveService
     {

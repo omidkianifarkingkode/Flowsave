@@ -1,4 +1,4 @@
-﻿namespace FlowSave.Security
+﻿namespace Flowsave.Security
 {
     public interface IEncryptionService
     {

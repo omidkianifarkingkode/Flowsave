@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using Flowsave.Shared;
+using System.Collections.Generic;
 
 namespace Flowsave.Configurations
 {
+
     public static class DefaultFlowSaveConfig
     {
         // This method will provide the default configuration
@@ -13,7 +15,7 @@ namespace Flowsave.Configurations
                 description = $"Default configuration for {namespaceId}",
                 serializerType = SerializerType.Json, // Default to JSON serializer
                 providerType = SaveProviderType.FileSystem, // Default to FileSystem storage
-                securityMode = SecurityMode.None, // Default to no security
+                securityMode = SecurityOptions.None, // Default to no security
                 filePath = $"saves/{namespaceId}.json", // Default file path
                 enableBackups = true, // Enable backups
                 maxBackups = 3, // Retain 3 backups

@@ -1,7 +1,7 @@
-﻿using Flowsave.Configurations;
+﻿using Flowsave.Shared;
 using System.IO;
 
-namespace FlowSave
+namespace Flowsave.Serialization
 {
     public class XmlSerializer : ISerializer
     {

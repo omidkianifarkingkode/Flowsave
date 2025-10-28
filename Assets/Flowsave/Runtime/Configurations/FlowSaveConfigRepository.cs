@@ -1,43 +1,77 @@
-﻿using Flowsave.Configurations;
+﻿// File: Flowsave/Configurations/FlowSaveConfigRepository.cs
+using Flowsave.Shared;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace FlowSave.Configurations
+namespace Flowsave.Configurations
 {
-    public interface IConfigRepository
+    [CreateAssetMenu(fileName = "FlowSaveConfigRepository", menuName = "FlowSave/Config Repository", order = 2)]
+    public class FlowSaveConfigRepository : ScriptableObject
     {
-        IEnumerable<FlowSaveConfig> Configs { get; }
+        [Header("Namespace Assets")]
+        [SerializeField] List<FlowSaveConfigAsset> namespaces = new();
 
-        FlowSaveConfig GetConfig(string namespaceId);
-        bool HasConfig(string namespaceId);
-    }
+        [Header("Default (fallback) Asset")]
+        [SerializeField] FlowSaveConfigAsset defaultAsset;
 
-    [CreateAssetMenu(fileName = "FlowSaveConfigRepository", menuName = "FlowSave/ConfigRepository", order = 2)]
-    public class FlowSaveConfigRepository : ScriptableObject, IConfigRepository
-    {
-        [SerializeField] List<FlowSaveConfig> configs = new();
+#if UNITY_EDITOR
+        [Header("Editor Only")]
+        [SerializeField] bool forceModeInEditor;
+        [SerializeField] AppMode forcedEditorMode = AppMode.Editor;
+#endif
 
-        public IEnumerable<FlowSaveConfig> Configs => configs.AsReadOnly();
+        Dictionary<string, FlowSaveConfigAsset> _byNamespace;
 
-        public FlowSaveConfig GetConfig(string namespaceId)
+        void OnEnable()
         {
-            var existingConfigs = configs.FirstOrDefault(config => config.namespaceId == namespaceId);
-
-            if (existingConfigs == null)
-                return DefaultFlowSaveConfig.GetDefaultConfig(namespaceId);
-
-            return existingConfigs;
+            defaultAsset?.Model?.EnsureAllModes();
+            RebuildIndex();
         }
 
-        public bool HasConfig(string namespaceId)
+        void OnValidate()
         {
-            return configs.Exists(config => config.namespaceId == namespaceId);
+            defaultAsset?.Model?.EnsureAllModes();
+            RebuildIndex();
         }
 
-        public void LoadConfigsFromResources()
+        public void RebuildIndex()
         {
-            configs = new List<FlowSaveConfig>(Resources.LoadAll<FlowSaveConfig>("Configurations"));
+            _byNamespace = new Dictionary<string, FlowSaveConfigAsset>();
+            foreach (var asset in namespaces.Where(a => a != null))
+            {
+                asset.Model?.EnsureAllModes();
+                var key = asset.NamespaceId ?? "";
+                if (string.IsNullOrEmpty(key)) continue;
+                if (_byNamespace.ContainsKey(key))
+                {
+                    Debug.LogWarning($"Duplicate FlowSaveConfigAsset for namespace '{key}'. Using first occurrence.");
+                    continue;
+                }
+                _byNamespace[key] = asset;
+            }
         }
+
+        public bool TryGet(string ns, out FlowSaveConfigAsset asset)
+        {
+            if (_byNamespace == null) RebuildIndex();
+            return _byNamespace.TryGetValue(ns, out asset);
+        }
+
+        public FlowSaveConfigAsset GetDefaultAsset() => defaultAsset;
+
+        public AppMode? GetForcedEditorModeOrNull()
+        {
+#if UNITY_EDITOR
+            return forceModeInEditor ? forcedEditorMode : (AppMode?)null;
+#else
+            return null;
+#endif
+        }
+
+        // Expose list for editor tooling
+        public List<FlowSaveConfigAsset> Namespaces => namespaces;
+        public void SetNamespaces(List<FlowSaveConfigAsset> list) => namespaces = list;
+        public void SetDefaultAsset(FlowSaveConfigAsset asset) => defaultAsset = asset;
     }
 }

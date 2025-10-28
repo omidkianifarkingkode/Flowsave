@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Flowsave.Shared;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Flowsave.Configurations
@@ -19,7 +20,7 @@ namespace Flowsave.Configurations
         public SerializerType serializerType;
 
         // Encryption method used (None, AES, RSA, etc.)
-        public SecurityMode securityMode;
+        public SecurityOptions securityMode;
 
         // File path for saving (relative to Application.persistentDataPath)
         public string filePath;
