@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4276871c9b4cfc24ebe7c84c4135d67b, type: 3}
+  m_Name: FlowSaveConfigRepository
+  m_EditorClassIdentifier: 
+  namespaces:
+  - {fileID: 11400000, guid: e4be81fe9578bb54f9763c30f119842e, type: 2}
+  - {fileID: 11400000, guid: 2ea5a96ea9f2a9648ad9d7b5262d8a59, type: 2}
+  - {fileID: 11400000, guid: 8f3d48e7094e82540aa1dfea3012cded, type: 2}
+  - {fileID: 11400000, guid: f7113532af3cce1429ccc0737aa31189, type: 2}
+  globalAsset: {fileID: 11400000, guid: 2ea5a96ea9f2a9648ad9d7b5262d8a59, type: 2}
+  forceModeInEditor: 0
+  forcedEditorMode: 0

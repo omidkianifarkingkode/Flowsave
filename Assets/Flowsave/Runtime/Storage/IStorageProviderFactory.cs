@@ -1,0 +1,23 @@
+﻿using Flowsave.Configurations;
+using System;
+
+namespace Flowsave.StorageProviders
+{
+    public interface IStorageProviderFactory
+    {
+        IStorageProvider CreateStorageProvider(SaveProviderType providerType);
+    }
+
+    public class StorageProviderFactory : IStorageProviderFactory
+    {
+        public IStorageProvider CreateStorageProvider(SaveProviderType providerType)
+        {
+            return providerType switch
+            {
+                SaveProviderType.FileSystem => new DiskStorageProvider(),
+                SaveProviderType.PlayerPrefs => new PlayerPrefsStorageProvider(),
+                _ => throw new InvalidOperationException($"Unsupported storage provider type: {providerType}")
+            };
+        }
+    }
+}

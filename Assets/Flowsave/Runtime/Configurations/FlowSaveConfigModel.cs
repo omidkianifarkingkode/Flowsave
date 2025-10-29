@@ -1,5 +1,4 @@
-﻿// File: Flowsave/Configurations/FlowSaveConfigModel.cs
-using Flowsave.Shared;
+﻿using Flowsave.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,33 +35,6 @@ namespace Flowsave.Configurations
             EnsureAllModes();
             var env = environments.First(e => e.mode == mode);
             return new FlowSaveConfigSnapshot(namespaceId, env.fields);
-        }
-    }
-
-    /// <summary>Immutable view implementing IFlowSaveConfig for the chosen environment.</summary>
-    public sealed class FlowSaveConfigSnapshot : IFlowSaveConfig
-    {
-        public string NamespaceId { get; }
-        public SaveProviderType ProviderType { get; }
-        public SerializerType SerializerType { get; }
-        public SecurityOptions SecurityOptions { get; }
-        public string FilePath { get; } // RESOLVED absolute path
-        public bool EnableBackups { get; }
-        public int MaxBackups { get; }
-        public int SchemaVersion { get; }
-        public string EncryptionProfileId { get; }
-
-        public FlowSaveConfigSnapshot(string ns, FlowSaveConfigFields f)
-        {
-            NamespaceId = ns ?? "";
-            ProviderType = f.providerType;
-            SerializerType = f.serializerType;
-            SecurityOptions = f.securityOptions;
-            FilePath = PathResolver.Resolve(f.pathRoot, (f.path ?? "").Replace("{NAMESPACE}", NamespaceId));
-            EnableBackups = f.enableBackups;
-            MaxBackups = f.maxBackups;
-            SchemaVersion = f.schemaVersion;
-            EncryptionProfileId = f.encryptionProfileId ?? "";
         }
     }
 }

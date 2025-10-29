@@ -12,8 +12,8 @@ namespace Flowsave.Configurations
         [Header("Namespace Assets")]
         [SerializeField] List<FlowSaveConfigAsset> namespaces = new();
 
-        [Header("Default (fallback) Asset")]
-        [SerializeField] FlowSaveConfigAsset defaultAsset;
+        [Header("Global (fallback) Asset")]
+        [SerializeField] FlowSaveConfigAsset globalAsset;
 
 #if UNITY_EDITOR
         [Header("Editor Only")]
@@ -25,13 +25,13 @@ namespace Flowsave.Configurations
 
         void OnEnable()
         {
-            defaultAsset?.Model?.EnsureAllModes();
+            globalAsset?.Model?.EnsureAllModes();
             RebuildIndex();
         }
 
         void OnValidate()
         {
-            defaultAsset?.Model?.EnsureAllModes();
+            globalAsset?.Model?.EnsureAllModes();
             RebuildIndex();
         }
 
@@ -58,12 +58,12 @@ namespace Flowsave.Configurations
             return _byNamespace.TryGetValue(ns, out asset);
         }
 
-        public FlowSaveConfigAsset GetDefaultAsset() => defaultAsset;
+        public FlowSaveConfigAsset GetGlobalAsset() => globalAsset;
 
         public AppMode? GetForcedEditorModeOrNull()
         {
 #if UNITY_EDITOR
-            return forceModeInEditor ? forcedEditorMode : (AppMode?)null;
+            return forceModeInEditor ? forcedEditorMode : default;
 #else
             return null;
 #endif
@@ -72,6 +72,6 @@ namespace Flowsave.Configurations
         // Expose list for editor tooling
         public List<FlowSaveConfigAsset> Namespaces => namespaces;
         public void SetNamespaces(List<FlowSaveConfigAsset> list) => namespaces = list;
-        public void SetDefaultAsset(FlowSaveConfigAsset asset) => defaultAsset = asset;
+        public void SetGlobalAsset(FlowSaveConfigAsset asset) => globalAsset = asset;
     }
 }

@@ -11,9 +11,9 @@ namespace Flowsave.Configurations.Editor
     {
         FlowSaveConfigRepository repo;
         string repoName = "FlowSaveConfigRepository";
-        string defaultNamespaceId = "default";
+        string globalNamespaceId = "global-game-data";
         string createFolder = "Assets/FlowSaveConfigs";
-        string newNamespaceId = "playerData";
+        string newNamespaceId = "{template}";
 
         [MenuItem("Tools/FlowSave/Initializer")]
         public static void Open()
@@ -23,24 +23,40 @@ namespace Flowsave.Configurations.Editor
             win.Show();
         }
 
+        void OnEnable()
+        {
+            // Attempt to load the existing repo, if any
+            if (repo == null)
+            {
+                var foundRepos = FindRepoAssets();
+                if (foundRepos.Length == 1)
+                {
+                    repo = foundRepos[0];
+                }
+            }
+        }
+
         void OnGUI()
         {
             EditorGUILayout.LabelField("FlowSave • Package Setup", EditorStyles.boldLabel);
             EditorGUILayout.Space(6);
 
+            // Display the repository object field
             repo = (FlowSaveConfigRepository)EditorGUILayout.ObjectField("Repository", repo, typeof(FlowSaveConfigRepository), false);
             EditorGUILayout.Space(6);
 
-            EditorGUILayout.LabelField("Create Repo + Default Namespace", EditorStyles.boldLabel);
+            // Disable button if repo already exists
+            EditorGUILayout.LabelField("Create Repo + Global Namespace", EditorStyles.boldLabel);
             repoName = EditorGUILayout.TextField("Repo Asset Name", repoName);
-            defaultNamespaceId = EditorGUILayout.TextField("Default Namespace Id", defaultNamespaceId);
+            globalNamespaceId = EditorGUILayout.TextField("Global Namespace Id", globalNamespaceId);
             createFolder = EditorGUILayout.TextField("Create In Folder", createFolder);
 
-            using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(repoName) || string.IsNullOrEmpty(defaultNamespaceId)))
+            bool repoExists = repo != null;
+            using (new EditorGUI.DisabledScope(repoExists || string.IsNullOrEmpty(repoName) || string.IsNullOrEmpty(globalNamespaceId)))
             {
-                if (GUILayout.Button("Create Repository + Default Namespace"))
+                if (GUILayout.Button("Create Repository + Global Namespace"))
                 {
-                    CreateRepoAndDefault();
+                    CreateRepoAndGlobalNamespace();
                 }
             }
 
@@ -69,7 +85,8 @@ namespace Flowsave.Configurations.Editor
             EditorGUILayout.LabelField("Create Namespace (and add to repo)", EditorStyles.boldLabel);
             newNamespaceId = EditorGUILayout.TextField("Namespace Id", newNamespaceId);
 
-            using (new EditorGUI.DisabledScope(repo == null || string.IsNullOrEmpty(newNamespaceId)))
+            // Validate that the namespace is not empty or {template}
+            using (new EditorGUI.DisabledScope(repo == null || string.IsNullOrEmpty(newNamespaceId) || newNamespaceId == "{template}"))
             {
                 if (GUILayout.Button("Create Namespace Asset"))
                 {
@@ -87,8 +104,9 @@ namespace Flowsave.Configurations.Editor
             }
         }
 
-        void CreateRepoAndDefault()
+        void CreateRepoAndGlobalNamespace()
         {
+            // Ensure the folder exists
             var repoPath = EnsureFolder(createFolder);
             if (repoPath == null)
             {
@@ -96,34 +114,49 @@ namespace Flowsave.Configurations.Editor
                 return;
             }
 
-            // Create default namespace asset
-            var defaultAssetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(repoPath, $"{defaultNamespaceId}.asset"));
-            var defAsset = ScriptableObject.CreateInstance<FlowSaveConfigAsset>();
-            defAsset.name = defaultNamespaceId;
-            defAsset.Model.namespaceId = defaultNamespaceId;
-            defAsset.Model.EnsureAllModes();
-            AssetDatabase.CreateAsset(defAsset, defaultAssetPath);
+            // Ensure the Resources folder exists inside the repo folder
+            var resourcesFolderPath = Path.Combine(repoPath, "Resources");
+            if (!AssetDatabase.IsValidFolder(resourcesFolderPath))
+            {
+                AssetDatabase.CreateFolder(repoPath, "Resources");
+            }
 
-            // Create repository
-            var repoAssetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(repoPath, $"{repoName}.asset"));
+            // Create global namespace asset with postfix
+            var globalNamespaceWithPostfix = $"{globalNamespaceId}-NamespaceConfig"; // Add postfix
+            var globalAssetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(repoPath, $"{globalNamespaceWithPostfix}.asset"));
+            var globalAsset = ScriptableObject.CreateInstance<FlowSaveConfigAsset>();
+            globalAsset.name = globalNamespaceWithPostfix;
+            globalAsset.Model.namespaceId = globalNamespaceWithPostfix;
+            globalAsset.Model.EnsureAllModes();
+            AssetDatabase.CreateAsset(globalAsset, globalAssetPath);
+
+            // Create repository in the Resources folder (inside the folder created by user)
+            var repoAssetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(resourcesFolderPath, $"{repoName}.asset"));
             var repoAsset = ScriptableObject.CreateInstance<FlowSaveConfigRepository>();
-            repoAsset.SetDefaultAsset(defAsset);
-            repoAsset.SetNamespaces(new System.Collections.Generic.List<FlowSaveConfigAsset> { defAsset });
+            repoAsset.SetGlobalAsset(globalAsset);
+            repoAsset.SetNamespaces(new System.Collections.Generic.List<FlowSaveConfigAsset> { globalAsset });
             AssetDatabase.CreateAsset(repoAsset, repoAssetPath);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
+            // Update repo field and selection
             repo = repoAsset;
             Selection.activeObject = repo;
             EditorGUIUtility.PingObject(repo);
 
-            Debug.Log($"FlowSave: Created repository at {repoAssetPath} with default namespace '{defaultNamespaceId}'.");
+            Debug.Log($"FlowSave: Created repository at {repoAssetPath} with global namespace '{globalNamespaceWithPostfix}'.");
         }
 
         void CreateNamespaceAssetAndAdd(string ns)
         {
-            var repoPath = GetRepoFolder(repo);
+            if (string.IsNullOrEmpty(ns) || ns == "{template}")
+            {
+                EditorUtility.DisplayDialog("FlowSave", "Namespace name cannot be empty or '{template}'.", "OK");
+                return;
+            }
+
+            var repoPath = EnsureFolder(createFolder); // The folder path to create namespaces
             if (repoPath == null)
             {
                 EditorUtility.DisplayDialog("FlowSave", "Could not infer repository folder. Please place the repo asset under an Assets/ path.", "OK");
@@ -138,14 +171,16 @@ namespace Flowsave.Configurations.Editor
                 return;
             }
 
-            var assetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(repoPath, $"{ns}.asset"));
+            // Create namespace config file in the "Assets/FlowSaveConfigs/" folder (NOT in Resources)
+            var namespaceConfigPath = Path.Combine(repoPath, $"{ns}-NamespaceConfig.asset");
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(namespaceConfigPath);
             var asset = ScriptableObject.CreateInstance<FlowSaveConfigAsset>();
-            asset.name = ns;
+            asset.name = $"{ns}-NamespaceConfig"; // Postfix added
             asset.Model.namespaceId = ns;
             asset.Model.EnsureAllModes();
             AssetDatabase.CreateAsset(asset, assetPath);
 
-            // add to repo
+            // Add to repo
             var list = repo.Namespaces;
             if (!list.Any(a => a && a.NamespaceId == ns))
             {
@@ -159,7 +194,7 @@ namespace Flowsave.Configurations.Editor
             Selection.activeObject = asset;
             EditorGUIUtility.PingObject(asset);
 
-            Debug.Log($"FlowSave: Created namespace asset '{ns}' at {assetPath} and added to repo.");
+            Debug.Log($"FlowSave: Created namespace asset '{ns}-NamespaceConfig' at {assetPath} and added to repo.");
         }
 
         void RefetchNamespacesIntoRepo()
