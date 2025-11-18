@@ -1,7 +1,9 @@
-﻿// File: Flowsave/Configurations/FlowSaveConfigRepository.cs
+﻿using Flowsave.Compression;
+using Flowsave.Security;
+using Flowsave.Security.Options;
+using Flowsave.Serialization;
 using Flowsave.Shared;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Flowsave.Configurations
@@ -10,10 +12,14 @@ namespace Flowsave.Configurations
     public class FlowSaveConfigRepository : ScriptableObject
     {
         [Header("Namespace Assets")]
-        [SerializeField] List<FlowSaveConfigAsset> namespaces = new();
+        [SerializeField] List<NamespaceConfiguration> namespaces = new();
 
         [Header("Global (fallback) Asset")]
-        [SerializeField] FlowSaveConfigAsset globalAsset;
+        NamespaceConfiguration DefaultNamespace;
+        public SerializationOptions DefaultSerializationOptions;
+        public EncryptionOptions DefaultEncryptionOptions;
+        public SigningOptions DefaultSigningOptions;
+        public CompressionOptions DefaultCompressionOptions;
 
 #if UNITY_EDITOR
         [Header("Editor Only")]
@@ -21,57 +27,16 @@ namespace Flowsave.Configurations
         [SerializeField] AppMode forcedEditorMode = AppMode.Editor;
 #endif
 
-        Dictionary<string, FlowSaveConfigAsset> _byNamespace;
+        Dictionary<string, NamespaceConfiguration> _byNamespace;
 
         void OnEnable()
         {
-            globalAsset?.Model?.EnsureAllModes();
-            RebuildIndex();
+            DefaultNamespace.EnsureAllModes();
         }
 
         void OnValidate()
         {
-            globalAsset?.Model?.EnsureAllModes();
-            RebuildIndex();
+            DefaultNamespace?.EnsureAllModes();
         }
-
-        public void RebuildIndex()
-        {
-            _byNamespace = new Dictionary<string, FlowSaveConfigAsset>();
-            foreach (var asset in namespaces.Where(a => a != null))
-            {
-                asset.Model?.EnsureAllModes();
-                var key = asset.NamespaceId ?? "";
-                if (string.IsNullOrEmpty(key)) continue;
-                if (_byNamespace.ContainsKey(key))
-                {
-                    Debug.LogWarning($"Duplicate FlowSaveConfigAsset for namespace '{key}'. Using first occurrence.");
-                    continue;
-                }
-                _byNamespace[key] = asset;
-            }
-        }
-
-        public bool TryGet(string ns, out FlowSaveConfigAsset asset)
-        {
-            if (_byNamespace == null) RebuildIndex();
-            return _byNamespace.TryGetValue(ns, out asset);
-        }
-
-        public FlowSaveConfigAsset GetGlobalAsset() => globalAsset;
-
-        public AppMode? GetForcedEditorModeOrNull()
-        {
-#if UNITY_EDITOR
-            return forceModeInEditor ? forcedEditorMode : default;
-#else
-            return null;
-#endif
-        }
-
-        // Expose list for editor tooling
-        public List<FlowSaveConfigAsset> Namespaces => namespaces;
-        public void SetNamespaces(List<FlowSaveConfigAsset> list) => namespaces = list;
-        public void SetGlobalAsset(FlowSaveConfigAsset asset) => globalAsset = asset;
     }
 }
