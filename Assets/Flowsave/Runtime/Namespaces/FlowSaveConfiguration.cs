@@ -2,20 +2,19 @@
 using Flowsave.Security;
 using Flowsave.Security.Options;
 using Flowsave.Serialization;
-using Flowsave.Shared;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Flowsave.Configurations
+namespace Flowsave.Namespaces
 {
-    [CreateAssetMenu(fileName = "FlowSaveConfigRepository", menuName = "FlowSave/Config Repository", order = 2)]
-    public class FlowSaveConfigRepository : ScriptableObject
+    [CreateAssetMenu(fileName = "FlowSaveConfiguration", menuName = "FlowSave/Config Repository", order = 2)]
+    public class FlowSaveConfiguration : ScriptableObject
     {
         [Header("Namespace Assets")]
         [SerializeField] List<NamespaceConfiguration> namespaces = new();
 
         [Header("Global (fallback) Asset")]
-        NamespaceConfiguration DefaultNamespace;
+        [field: SerializeField] NamespaceConfiguration DefaultNamespace;
         public SerializationOptions DefaultSerializationOptions;
         public EncryptionOptions DefaultEncryptionOptions;
         public SigningOptions DefaultSigningOptions;
@@ -24,19 +23,9 @@ namespace Flowsave.Configurations
 #if UNITY_EDITOR
         [Header("Editor Only")]
         [SerializeField] bool forceModeInEditor;
-        [SerializeField] AppMode forcedEditorMode = AppMode.Editor;
+        [SerializeField] EnvironmentMode forcedEditorMode = EnvironmentMode.Editor;
 #endif
 
         Dictionary<string, NamespaceConfiguration> _byNamespace;
-
-        void OnEnable()
-        {
-            DefaultNamespace.EnsureAllModes();
-        }
-
-        void OnValidate()
-        {
-            DefaultNamespace?.EnsureAllModes();
-        }
     }
 }

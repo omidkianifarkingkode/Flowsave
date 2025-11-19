@@ -1,5 +1,4 @@
-﻿using Flowsave.Shared;
-using System.IO;
+﻿using System.IO;
 
 namespace Flowsave.Serialization
 {

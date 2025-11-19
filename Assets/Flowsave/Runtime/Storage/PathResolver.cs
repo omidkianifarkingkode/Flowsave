@@ -1,6 +1,4 @@
 ﻿// File: Flowsave/Configurations/PathResolver.cs
-using Flowsave.Shared;
-using Flowsave.Storage;
 using System.IO;
 using UnityEngine;
 

@@ -1,6 +1,4 @@
-﻿using Flowsave.Shared;
-
-namespace Flowsave.Serialization
+﻿namespace Flowsave.Serialization
 {
     /// <summary>
     /// Defines serialization behavior for FlowSave contexts.

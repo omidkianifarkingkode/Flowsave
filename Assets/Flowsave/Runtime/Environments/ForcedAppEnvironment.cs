@@ -1,20 +1,18 @@
-﻿using Flowsave.Shared;
-
-namespace Flowsave.Configurations
+﻿namespace Flowsave.Namespaces
 {
     // Optional helper to wrap forced mode
     public sealed class ForcedAppEnvironment : IAppEnvironment
     {
         private readonly IAppEnvironment _inner;
-        private readonly AppMode _forced;
+        private readonly EnvironmentMode _forced;
 
-        public ForcedAppEnvironment(IAppEnvironment inner, AppMode forced)
+        public ForcedAppEnvironment(IAppEnvironment inner, EnvironmentMode forced)
         {
             _inner = inner;
             _forced = forced;
         }
 
-        public AppMode GetCurrentMode(AppMode? forcedEditorMode = null)
+        public EnvironmentMode GetCurrentMode(EnvironmentMode? forcedEditorMode = null)
             => _inner.GetCurrentMode(_forced);
     }
 }

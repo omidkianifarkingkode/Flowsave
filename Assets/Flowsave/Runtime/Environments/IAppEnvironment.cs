@@ -1,9 +1,7 @@
-﻿using Flowsave.Shared;
-
-namespace Flowsave.Configurations
+﻿namespace Flowsave.Namespaces
 {
     public interface IAppEnvironment
     {
-        AppMode GetCurrentMode(AppMode? forcedEditorMode = null);
+        EnvironmentMode GetCurrentMode(EnvironmentMode? forcedEditorMode = null);
     }
 }

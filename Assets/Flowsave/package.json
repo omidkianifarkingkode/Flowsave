@@ -1,0 +1,17 @@
+{
+  "name": "com.flowsave.core",
+  "displayName": "Flowsave Core",
+  "version": "1.0.0",
+  "unity": "2020.3",
+  "description": "Flowsave core serialization and save-management package.",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com"
+  },
+
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.2",
+    "com.cysharp.messagepack": "https://github.com/Cysharp/MessagePack-CSharp.git?path=src/MessagePack.Unity",
+    "com.michaels.protobuf": "https://github.com/needle-tools/protobuf-net-unity.git#upm"
+  }
+}

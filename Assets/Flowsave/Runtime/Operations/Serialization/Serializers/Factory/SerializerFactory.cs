@@ -1,4 +1,4 @@
-﻿using Flowsave.Configurations;
+﻿using Flowsave.Namespaces;
 using System;
 
 namespace Flowsave.Serialization

@@ -1,6 +1,4 @@
-﻿using Flowsave.Configurations;
-using Flowsave.Shared;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Text;
 
 namespace Flowsave.Serialization

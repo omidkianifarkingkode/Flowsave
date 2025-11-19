@@ -1,7 +1,5 @@
-using Flowsave.Configurations;
+using Flowsave.Namespaces;
 using Flowsave.Serialization;
-using Flowsave.Shared;
-using Flowsave.Storage;
 using UnityEngine;
 
 namespace Flowsave.Unity
@@ -9,11 +7,11 @@ namespace Flowsave.Unity
     public sealed class FlowSaveBootstrapper : MonoBehaviour
     {
         [Header("Config Repository")]
-        [SerializeField] private FlowSaveConfigRepository configRepository;
+        [SerializeField] private FlowSaveConfiguration configRepository;
 
         [Header("Environment")]
         [SerializeField] private bool overrideEditorMode;
-        [SerializeField] private AppMode editorModeOverride = AppMode.Editor;
+        [SerializeField] private EnvironmentMode editorModeOverride = EnvironmentMode.Editor;
 
         public static IFlowSaveService Service { get; private set; }
 

@@ -1,6 +1,6 @@
-﻿namespace Flowsave.Shared
+﻿namespace Flowsave.Namespaces
 {
-    public enum AppMode
+    public enum EnvironmentMode
     {
         Editor,
         Development,
