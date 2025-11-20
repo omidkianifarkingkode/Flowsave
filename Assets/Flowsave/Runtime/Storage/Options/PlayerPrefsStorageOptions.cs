@@ -9,14 +9,22 @@ namespace Flowsave.Storage
         /// <summary>
         /// Prefix added to all PlayerPrefs keys (namespacing).
         /// </summary>
-        [field:SerializeField] public string Prefix { get; set; } = "ds:";
+        public string Prefix = "ds:";
         /// <summary>
         /// Chunk size in characters for Base64 data. 16k is a conservative default.
         /// </summary>
-        [field: SerializeField] public int ChunkChars { get; set; } = 16_384;
+        public int ChunkChars = 16_384;
         /// <summary>
         /// If true, calls PlayerPrefs.Save() after each mutation.
         /// </summary>
-        [field: SerializeField] public bool AutoSave { get; set; } = true;
+        public bool AutoSave = true;
+
+        public static PlayerPrefsStorageOptions Clone(PlayerPrefsStorageOptions from) =>
+            from == null ? null : new PlayerPrefsStorageOptions
+            {
+                Prefix = from.Prefix,
+                ChunkChars = from.ChunkChars,
+                AutoSave = from.AutoSave
+            };
     }
 }

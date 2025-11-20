@@ -4,11 +4,35 @@ using UnityEngine;
 namespace Flowsave.Security.Options
 {
     [Serializable]
-    public class SigningOptions 
+    public class DefaultSigningOptions
     {
-        [field: SerializeField] public SigningType SigningType { get; private set; } = SigningType.None;
-        [field: SerializeField] public bool UseDefault { get; private set; } = true;
+        public SigningType SigningType = SigningType.None;
 
-        [field: SerializeField] public HmacOptions Hmac { get; private set; } = new HmacOptions();
+        public HmacOptions Hmac = new();
+    }
+
+    [Serializable]
+    public class SigningOptions : DefaultSigningOptions
+    {
+        public bool UseDefault = true;
+
+        public static SigningOptions Clone(DefaultSigningOptions from) =>
+            from == null ? null : new SigningOptions
+            {
+                UseDefault = true,
+
+                SigningType = from.SigningType,
+                Hmac = HmacOptions.Clone(from.Hmac)
+            };
+
+
+        public static SigningOptions Clone(SigningOptions from) =>
+            from == null ? null : new SigningOptions
+            {
+                UseDefault = from.UseDefault,
+                SigningType = from.SigningType,
+                Hmac = HmacOptions.Clone(from.Hmac)
+            };
+
     }
 }

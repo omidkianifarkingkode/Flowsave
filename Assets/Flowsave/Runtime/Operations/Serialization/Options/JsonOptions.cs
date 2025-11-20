@@ -6,9 +6,17 @@ namespace Flowsave.Serialization
     [Serializable]
     public class JsonOptions
     {
-        [field: SerializeField] public bool PrettyPrint { get; private set; } = false;
-        [field: SerializeField] public bool IncludeNulls { get; private set; } = true;
+        public bool PrettyPrint = false;
+        public bool IncludeNulls = true;
         [Tooltip("True for full type hinting, false for simple")]
-        [field: SerializeField] public bool TypeHinting { get; private set; } = true;
+        public bool TypeHinting = true;
+
+        public static JsonOptions Clone(JsonOptions from) =>
+            from == null ? null : new JsonOptions
+            {
+                PrettyPrint = from.PrettyPrint,
+                IncludeNulls = from.IncludeNulls,
+                TypeHinting = from.TypeHinting
+            };
     }
 }

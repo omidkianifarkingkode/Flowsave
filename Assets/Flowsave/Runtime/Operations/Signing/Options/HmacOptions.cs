@@ -3,28 +3,33 @@ using UnityEngine;
 
 namespace Flowsave.Security.Options
 {
+    public enum HmacTruncate { None = 0, _16 = 16, _32 = 32 }
+
     [Serializable]
     public class HmacOptions
     {
         [Tooltip("Base64 of HMAC key bytes (e.g., 32 bytes recommended). TEST ONLY – do not ship real keys.")]
-        [field: SerializeField] public string KeyB64 { get; private set; } = string.Empty;
+        public string KeyB64 = string.Empty;
 
 
         [Tooltip("Identifier for this HMAC key (used in envelopes/headers for rotation). Not secret.")]
-        [field: SerializeField] public string KeyId { get; private set; } = "hmac-test";
+        public string KeyId = "hmac-test";
 
 
         [Tooltip("Truncate HMAC output to N bytes (leave 0 for full 32). 16..32 typical. Lower = smaller but weaker.")]
-        [field: SerializeField] public int TruncateTo { get; private set; } = 0;
+        public HmacTruncate TruncateTo = HmacTruncate.None;
 
 
         public byte[] Key => string.IsNullOrEmpty(KeyB64) ? Array.Empty<byte>() : Convert.FromBase64String(KeyB64);
 
 
-        public void Validate()
-        {
-            if (TruncateTo != 0 && (TruncateTo < 10 || TruncateTo > 32))
-                Debug.LogWarning("[HmacOptions] Truncation outside 10..32 bytes is unusual. Use 16..32 typically, or 0 for full.");
-        }
+        public static HmacOptions Clone(HmacOptions from) =>
+            from == null ? null : new HmacOptions
+            {
+                KeyB64 = from.KeyB64,
+                KeyId = from.KeyId,
+                TruncateTo = from.TruncateTo
+            };
+
     }
 }

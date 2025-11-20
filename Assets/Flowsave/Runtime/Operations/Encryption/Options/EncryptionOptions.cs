@@ -4,15 +4,40 @@ using UnityEngine;
 namespace Flowsave.Security
 {
     [Serializable]
-    public class EncryptionOptions 
+    public class DefaultEncryptionOptions
     {
-        [field: SerializeField] public EncryptionType EncryptionType { get; private set; } = EncryptionType.None;
-        [field: SerializeField] public bool UseDefault { get; private set; } = true;
+        public EncryptionType EncryptionType = EncryptionType.None;
 
         [Tooltip("AES encryption options.")]
-        [field: SerializeField] public AesOptions Aes128 { get; private set; } = new AesOptions();
+        public AesOptions Aes128 = new();
 
         [Tooltip("AES encryption options.")]
-        [field: SerializeField] public AesOptions Aes256 { get; private set; } = new AesOptions();
+        public AesOptions Aes256 = new();
+    }
+
+    [Serializable]
+    public class EncryptionOptions : DefaultEncryptionOptions
+    {
+        public bool UseDefault = true;
+
+        public static EncryptionOptions Clone(DefaultEncryptionOptions from) =>
+            from == null ? null : new EncryptionOptions
+            {
+                UseDefault = true,
+
+                EncryptionType = from.EncryptionType,
+                Aes128 = AesOptions.Clone(from.Aes128),
+                Aes256 = AesOptions.Clone(from.Aes256)
+            };
+
+        public static EncryptionOptions Clone(EncryptionOptions from) =>
+            from == null ? null : new EncryptionOptions
+            {
+                UseDefault = from.UseDefault,
+                EncryptionType = from.EncryptionType,
+                Aes128 = AesOptions.Clone(from.Aes128),
+                Aes256 = AesOptions.Clone(from.Aes256)
+            };
+
     }
 }
