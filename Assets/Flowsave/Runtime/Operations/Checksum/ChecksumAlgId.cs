@@ -1,5 +1,9 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 namespace Flowsave.Checksum
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum ChecksumAlgId : byte
     {
         None = 0,

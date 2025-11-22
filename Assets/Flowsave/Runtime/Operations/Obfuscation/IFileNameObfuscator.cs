@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Security
+﻿namespace Flowsave.Operations
 {
     public interface IFileNameObfuscator
     {

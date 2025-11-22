@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Flowsave.Security
+namespace Flowsave.Operations
 {
     /// <summary>
     /// No-op signer for scenarios where signing is disabled but interface is required.

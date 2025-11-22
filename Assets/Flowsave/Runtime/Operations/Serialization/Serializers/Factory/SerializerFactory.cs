@@ -17,9 +17,9 @@ namespace Flowsave.Serialization
             return serializerType switch
             {
                 SerializationType.Json => new JsonSerializer(_options.Json),
-#pragma warning disable SYSLIB0011
+#pragma warning disable CS0618
                 SerializationType.Binary_Legacy => new LegacyBinaryFormatterSerializer(),
-#pragma warning restore SYSLIB0011
+#pragma warning restore CS0618
 #if FLOWSAVE_PROTOBUF_NET
                 SerializerType.Binary_Protobuf => new ProtobufSerializer(),
 #endif

@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Flowsave.Security.Options
+namespace Flowsave.Operations.Options
 {
     public enum HmacTruncate { None = 0, _16 = 16, _32 = 32 }
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Flowsave.Security
+namespace Flowsave.Operations
 {
     [Serializable]
     public class DefaultEncryptionOptions

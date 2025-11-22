@@ -1,20 +1,18 @@
 ﻿using Flowsave.Compression;
-using Flowsave.Security;
-using Flowsave.Security.Options;
+using Flowsave.Operations;
+using Flowsave.Operations.Options;
 using Flowsave.Serialization;
 using Flowsave.Storage;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor;
+
 using UnityEngine;
 
 namespace Flowsave.Namespaces
 {
-    [CreateAssetMenu(fileName = "FlowSaveConfiguration", menuName = "FlowSave/Config Repository", order = 2)]
-    public class FlowSaveConfiguration : ScriptableObject
+    public partial class FlowSaveConfiguration : ScriptableObject
     {
         public DefaultStorageOptions DefaultStorageOptions = new();
-        public OperationMode DefaultOperations = OperationMode.None;
         public DefaultCompressionOptions DefaultCompressionOptions = new();
         public DefaultSerializationOptions DefaultSerializationOptions = new();
         public DefaultEncryptionOptions DefaultEncryptionOptions = new();
@@ -28,8 +26,10 @@ namespace Flowsave.Namespaces
         public EnvironmentConfiguration GetEnvironmentConfiguration(string namespaceId)
         {
             // 1. Cached?
-           // if (_cache.TryGetValue(namespaceId, out var cached))
-           //     return cached;
+            #if !UNITY_EDITOR
+            if (_cache.TryGetValue(namespaceId, out var cached))
+                return cached;
+            #endif
 
             var mode = GetCurrentMode();
 
@@ -38,8 +38,8 @@ namespace Flowsave.Namespaces
 
             // 3. Resolve global and namespace configurations
             var nsConfig = Namespaces?.FirstOrDefault(n => n.NamespaceId == namespaceId);
-            var globalEnv = DefaultEnvironments?.FirstOrDefault(e => (e.Environment & mode) == mode);
-            var nsEnv = nsConfig?.Environments?.FirstOrDefault(e => (e.Environment & mode) == mode);
+            var globalEnv = DefaultEnvironments?.FirstOrDefault(e => (e.AppMode & mode) == mode);
+            var nsEnv = nsConfig?.Environments?.FirstOrDefault(e => (e.AppMode & mode) == mode);
 
             // 4. Your flow
             if (nsEnv != null)
@@ -56,20 +56,22 @@ namespace Flowsave.Namespaces
             // else: only default base remains
 
             // 5. Cache the final result
-            _cache[namespaceId] = result;
+            #if !UNITY_EDITOR
+                _cache[namespaceId] = result;
+            #endif
 
             return result;
         }
 
-        private EnvironmentConfiguration CreateBaseEnvironment(EnvironmentMode mode)
+        private EnvironmentConfiguration CreateBaseEnvironment(AppMode mode)
         {
             return new EnvironmentConfiguration
             {
-                Environment = mode,
+                AppMode = mode,
                 SchemaVersion = 1,
 
                 StorageOptions = StorageOptions.Clone(DefaultStorageOptions),
-                Operations = DefaultOperations,
+                Operations = new List<OperationMode>(),
                 CompressionOptions = CompressionOptions.Clone(DefaultCompressionOptions),
                 SerializationOptions = SerializationOptions.Clone(DefaultSerializationOptions),
                 EncryptionOptions = EncryptionOptions.Clone(DefaultEncryptionOptions),
@@ -86,8 +88,15 @@ namespace Flowsave.Namespaces
                 target.StorageOptions = StorageOptions.Clone(source.StorageOptions);
 
             // Ops
-            if (source.Operations != OperationMode.None)
-                target.Operations = source.Operations;
+            if (source.Operations != null && source.Operations.Count > 0)
+            {
+                if (target.Operations == null)
+                    target.Operations = new List<OperationMode>();
+                else
+                    target.Operations.Clear();
+
+                target.Operations.AddRange(source.Operations);
+            }
 
             // Compression
             if (!source.CompressionOptions.UseDefault)
@@ -110,40 +119,15 @@ namespace Flowsave.Namespaces
                 target.SchemaVersion = source.SchemaVersion;
         }
 
-        private static EnvironmentMode GetCurrentMode()
+        private static AppMode GetCurrentMode()
         {
 #if UNITY_EDITOR
-            return EnvironmentMode.Editor;
+            return AppMode.Editor;
 #elif DEVELOPMENT_BUILD
-            return EnvironmentMode.Development;
+            return AppMode.Development;
 #else
-            EnvironmentMode.Release;
+            AppMode.Release;
 #endif
-        }
-
-        [ContextMenu("Print")]
-        public void Print() 
-        {
-            var enConfig = GetEnvironmentConfiguration("test");
-
-            Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(enConfig, Newtonsoft.Json.Formatting.Indented));
-        }
-
-        [ContextMenu("AddNamespace")]
-        public void AddNamespace() 
-        {
-            var envConfig = EnvironmentConfiguration.Clone(DefaultEnvironments.First());
-
-            var newNs = new NamespaceConfiguration() 
-            {
-                NamespaceId = "test",
-                Environments = new List<EnvironmentConfiguration> { envConfig }
-            };
-
-            Namespaces.Add(newNs);
-
-            UnityEditor.EditorUtility.SetDirty(this);
-            AssetDatabase.SaveAssets();
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace Flowsave.Security
+namespace Flowsave.Operations
 {
     public sealed class AesGcmEncryptor : IEncryptor
     {

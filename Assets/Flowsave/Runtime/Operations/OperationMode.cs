@@ -1,15 +1,17 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
 
-namespace Flowsave.Security
+namespace Flowsave.Operations
 {
-    [Flags]
-    public enum OperationMode
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum OperationMode : byte
     {
         None = 0,
-        Encrypt = 1 << 0,
-        Sign = 1 << 1,
-        ObfuscateName = 1 << 2,
-        Checksum = 1 << 3,
-        Comperssion = 1 << 4,
+        Compression,
+        Sign,
+        Checksum,
+        Encrypt,
+        ObfuscateName,
     }
 }

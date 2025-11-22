@@ -1,8 +1,8 @@
-﻿using Flowsave.Security.Options;
+﻿using Flowsave.Operations.Options;
 using System;
 using System.Security.Cryptography;
 
-namespace Flowsave.Security
+namespace Flowsave.Operations
 {
     /// <summary>
     /// HMAC-SHA256 signer (symmetric). Use ONLY when both producer and verifier share the same secret.

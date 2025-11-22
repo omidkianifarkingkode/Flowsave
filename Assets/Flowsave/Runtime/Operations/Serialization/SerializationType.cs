@@ -1,7 +1,12 @@
-﻿namespace Flowsave.Serialization
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
+namespace Flowsave.Serialization
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum SerializationType
     {
+        None = 0,
         Json = 1,
         Binary_Legacy = 2,
 #if FLOWSAVE_PROTOBUF_NET

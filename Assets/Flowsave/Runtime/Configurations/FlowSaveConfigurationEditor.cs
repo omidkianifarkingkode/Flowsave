@@ -1,0 +1,41 @@
+﻿#if UNITY_EDITOR
+
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+
+namespace Flowsave.Namespaces
+{
+    [CreateAssetMenu(fileName = "FlowSaveConfiguration", menuName = "FlowSave/Config Repository", order = 2)]
+    public partial class FlowSaveConfiguration
+    {
+        [ContextMenu("Print")]
+        public void Print()
+        {
+            var enConfig = GetEnvironmentConfiguration("test");
+
+            Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(enConfig, Newtonsoft.Json.Formatting.Indented));
+        }
+
+        [ContextMenu("AddNamespace")]
+        public void AddNamespace()
+        {
+            var envConfig = EnvironmentConfiguration.Clone(DefaultEnvironments.First());
+
+            var newNs = new NamespaceConfiguration()
+            {
+                NamespaceId = "test",
+                Environments = new List<EnvironmentConfiguration> { envConfig }
+            };
+
+            Namespaces.Add(newNs);
+
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssets();
+        }
+    }
+}
+
+#endif

@@ -11,7 +11,7 @@ namespace Flowsave.Unity
 
         [Header("Environment")]
         [SerializeField] private bool overrideEditorMode;
-        [SerializeField] private EnvironmentMode editorModeOverride = EnvironmentMode.Editor;
+        [SerializeField] private AppMode editorModeOverride = AppMode.Editor;
 
         public static IFlowSaveService Service { get; private set; }
 
@@ -27,13 +27,13 @@ namespace Flowsave.Unity
             DontDestroyOnLoad(gameObject);
 
             // Create environment
-            IAppEnvironment appEnv = new DefaultAppEnvironment();
+            //IAppEnvironment appEnv = new DefaultAppEnvironment();
 
 #if UNITY_EDITOR
             if (overrideEditorMode)
             {
                 // simple wrapper to inject forced mode
-                appEnv = new ForcedAppEnvironment(appEnv, editorModeOverride);
+              //  appEnv = new ForcedAppEnvironment(appEnv, editorModeOverride);
             }
 #endif
 

@@ -24,14 +24,13 @@ MonoBehaviour:
       Prefix: 'ds:'
       ChunkChars: 16384
       AutoSave: 1
-  DefaultOperations: 0
   DefaultCompressionOptions:
-    CompressionType: 1
+    CompressionType: 0
   DefaultSerializationOptions:
     SerializationType: 1
     Json:
-      PrettyPrint: 1
-      IncludeNulls: 0
+      PrettyPrint: 0
+      IncludeNulls: 1
       TypeHinting: 1
   DefaultEncryptionOptions:
     EncryptionType: 1
@@ -41,54 +40,54 @@ MonoBehaviour:
       Nonce: 0
       TagBytes: 16
     Aes256:
-      KeyBits: 256
+      KeyBits: 128
       KeyB64: 
       Nonce: 0
       TagBytes: 16
   DefaultSigningOptions:
-    SigningType: 1
+    SigningType: 0
     Hmac:
       KeyB64: 
       KeyId: hmac-test
       TruncateTo: 0
   DefaultEnvironments:
-  - Environment: 5
+  - AppMode: 1
     StorageOptions:
-      StorageType: 0
+      StorageType: 1
       DiskStorage:
-        PathRoot: 0
-        RelativeDirectory: 
-        FileExtension: 111111
-        KeepBackup: 0
-        MaxBackup: 0
+        PathRoot: 1
+        RelativeDirectory: saves/{NAMESPACE}.json
+        FileExtension: .json
+        KeepBackup: 1
+        MaxBackup: 3
       PlayerPrefsStorage:
-        Prefix: 333333
-        ChunkChars: 0
-        AutoSave: 0
+        Prefix: 'ds:'
+        ChunkChars: 16384
+        AutoSave: 1
       UseDefault: 0
-    Operations: 0
+    Operations: 0105
     CompressionOptions:
       CompressionType: 0
       UseDefault: 1
     SerializationOptions:
       SerializationType: 1
       Json:
-        PrettyPrint: 1
+        PrettyPrint: 0
         IncludeNulls: 1
         TypeHinting: 1
       UseDefault: 1
     EncryptionOptions:
       EncryptionType: 0
       Aes128:
-        KeyBits: 0
+        KeyBits: 128
         KeyB64: 
         Nonce: 0
-        TagBytes: 0
+        TagBytes: 16
       Aes256:
-        KeyBits: 0
+        KeyBits: 128
         KeyB64: 
         Nonce: 0
-        TagBytes: 0
+        TagBytes: 16
       UseDefault: 1
     SigningOptions:
       SigningType: 0
@@ -97,48 +96,48 @@ MonoBehaviour:
         KeyId: 
         TruncateTo: 0
       UseDefault: 1
-    SchemaVersion: 0
+    SchemaVersion: 1
   Namespaces:
   - NamespaceId: test
     Environments:
-    - Environment: 5
+    - AppMode: 1
       StorageOptions:
-        StorageType: 0
+        StorageType: 1
         DiskStorage:
-          PathRoot: 0
-          RelativeDirectory: 222
-          FileExtension: 
-          KeepBackup: 0
-          MaxBackup: 0
+          PathRoot: 1
+          RelativeDirectory: saves/{NAMESPACE}.json
+          FileExtension: .json
+          KeepBackup: 1
+          MaxBackup: 3
         PlayerPrefsStorage:
           Prefix: 
-          ChunkChars: 0
+          ChunkChars: 16384
           AutoSave: 0
         UseDefault: 0
-      Operations: 0
+      Operations: 04
       CompressionOptions:
         CompressionType: 0
         UseDefault: 1
       SerializationOptions:
-        SerializationType: 1
+        SerializationType: 0
         Json:
-          PrettyPrint: 1
-          IncludeNulls: 1
-          TypeHinting: 1
+          PrettyPrint: 0
+          IncludeNulls: 0
+          TypeHinting: 0
         UseDefault: 1
       EncryptionOptions:
-        EncryptionType: 0
+        EncryptionType: 2
         Aes128:
-          KeyBits: 0
+          KeyBits: 128
           KeyB64: 
           Nonce: 0
-          TagBytes: 0
+          TagBytes: 16
         Aes256:
-          KeyBits: 0
+          KeyBits: 128
           KeyB64: 
           Nonce: 0
-          TagBytes: 0
-        UseDefault: 1
+          TagBytes: 16
+        UseDefault: 0
       SigningOptions:
         SigningType: 0
         Hmac:
@@ -146,4 +145,4 @@ MonoBehaviour:
           KeyId: 
           TruncateTo: 0
         UseDefault: 1
-      SchemaVersion: 0
+      SchemaVersion: 1
