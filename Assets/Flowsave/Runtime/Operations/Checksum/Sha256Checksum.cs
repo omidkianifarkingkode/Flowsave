@@ -9,7 +9,7 @@ namespace Flowsave.Checksum
     /// </summary>
     public sealed class Sha256Checksum : IChecksum
     {
-        public ChecksumAlgId Alg => ChecksumAlgId.SHA256;
+        public ChecksumType Alg => ChecksumType.SHA256;
         public bool IsNoOp => false;
 
 

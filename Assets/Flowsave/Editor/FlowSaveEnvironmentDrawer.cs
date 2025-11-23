@@ -19,12 +19,14 @@ public partial class FlowSaveConfigWindow
     private static class FlowSaveEnvironmentDrawer
     {
         public static void DrawEnvironmentList(
-        SerializedObject rootConfig,
-        SerializedProperty envsProp,
-        string labelPrefix,
-        string addButtonLabel,
-        bool showAddButton = true,
-        bool compactOptions = false)
+            SerializedObject rootConfig,
+            SerializedProperty envsProp,
+            string labelPrefix,
+            string addButtonLabel,
+            bool showAddButton = true,
+            bool compactOptions = false,
+            bool allowDelete = true,
+            bool allowAppModeEdit = true)
         {
             if (envsProp == null)
             {
@@ -55,19 +57,39 @@ public partial class FlowSaveConfigWindow
                 EditorGUILayout.BeginHorizontal();
                 envProp.isExpanded = EditorGUILayout.Foldout(envProp.isExpanded, label, true);
 
-                if (GUILayout.Button("X", GUILayout.Width(22)))
+                if (allowDelete)
                 {
-                    envsProp.DeleteArrayElementAtIndex(i);
-                    EditorGUILayout.EndHorizontal();
-                    EditorGUILayout.EndVertical();
-                    break;
+                    if (GUILayout.Button("X", GUILayout.Width(22)))
+                    {
+                        envsProp.DeleteArrayElementAtIndex(i);
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.EndVertical();
+                        break;
+                    }
                 }
+
                 EditorGUILayout.EndHorizontal();
 
                 if (envProp.isExpanded)
                 {
-                    EditorGUILayout.PropertyField(appModeProp);
-                    EditorGUILayout.PropertyField(envProp.FindPropertyRelative(nameof(EnvironmentConfiguration.SchemaVersion)));
+                    // AppMode field behavior depends on allowAppModeEdit
+                    if (appModeProp != null)
+                    {
+                        if (allowAppModeEdit)
+                        {
+                            EditorGUILayout.PropertyField(appModeProp);
+                        }
+                        else
+                        {
+                            using (new EditorGUI.DisabledScope(true))
+                            {
+                                EditorGUILayout.PropertyField(appModeProp);
+                            }
+                        }
+                    }
+
+                    EditorGUILayout.PropertyField(
+                        envProp.FindPropertyRelative(nameof(EnvironmentConfiguration.SchemaVersion)));
 
                     // ─────────────────────────────────────────────
                     // Storage – ALWAYS
@@ -141,6 +163,9 @@ public partial class FlowSaveConfigWindow
                             DrawSigningOptionsContent,
                             compactOptions
                         );
+
+                        // Compression
+                        DrawObfuscateNameToggle(operationsListProp, envProp);
                     }
 
                 }
@@ -182,14 +207,14 @@ public partial class FlowSaveConfigWindow
         }
 
         private static void DrawOperationSection(
-    string opLabel,
-    OperationMode mode,
-    SerializedProperty operationsListProp,
-    SerializedProperty optionsProp,
-    SerializedProperty defaultOptionsProp,
-    string useDefaultPropertyName,
-    Action<SerializedProperty, bool> innerContentDrawer,
-    bool compactMode)
+            string opLabel,
+            OperationMode mode,
+            SerializedProperty operationsListProp,
+            SerializedProperty optionsProp,
+            SerializedProperty defaultOptionsProp,
+            string useDefaultPropertyName,
+            Action<SerializedProperty, bool> innerContentDrawer,
+            bool compactMode)
         {
             if (operationsListProp == null || optionsProp == null)
                 return;
@@ -203,14 +228,25 @@ public partial class FlowSaveConfigWindow
 
             EditorGUILayout.BeginVertical("box");
 
+            // ─────────────────────────────────────
+            // Header row: "Use X" + optional "Overwrite"
+            // ─────────────────────────────────────
             EditorGUILayout.BeginHorizontal();
+
             // "Use" checkbox: controls whether this op is added to the list
             bool newIsUsed = EditorGUILayout.ToggleLeft($"Use {opLabel}", isUsed, GUILayout.Width(140f));
-            // "Overwrite" checkbox: controls whether options are editable
-            overrideEnabled = EditorGUILayout.ToggleLeft($"Overwrite {opLabel} Options", overrideEnabled);
+
+            // Only show "Overwrite" checkbox if operation is enabled
+            if (newIsUsed)
+            {
+                overrideEnabled = EditorGUILayout.ToggleLeft($"Overwrite {opLabel} Options", overrideEnabled);
+            }
+
             EditorGUILayout.EndHorizontal();
 
+            // ─────────────────────────────────────
             // Update operations list if "Use" changed
+            // ─────────────────────────────────────
             if (newIsUsed != isUsed)
             {
                 if (newIsUsed)
@@ -221,7 +257,21 @@ public partial class FlowSaveConfigWindow
                 isUsed = newIsUsed;
             }
 
-            // Copy defaults when switching from useDefault -> override
+            // If operation is not used, force options to "use default" and bail out
+            if (!isUsed)
+            {
+                if (useDefaultProp != null)
+                    useDefaultProp.boolValue = true; // always fall back to defaults when disabled
+
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            // ─────────────────────────────────────
+            // Operation is used: manage override state
+            // ─────────────────────────────────────
+
+            // When first enabling "override", copy defaults into the local options
             if (!prevOverrideEnabled && overrideEnabled && defaultOptionsProp != null)
             {
                 CopyOptionsFromDefaults(defaultOptionsProp, optionsProp);
@@ -231,7 +281,7 @@ public partial class FlowSaveConfigWindow
                 useDefaultProp.boolValue = !overrideEnabled;
 
             // Only show options UI if operation is used AND overridden
-            if (isUsed && overrideEnabled && innerContentDrawer != null)
+            if (overrideEnabled && innerContentDrawer != null)
             {
                 EditorGUI.indentLevel++;
                 innerContentDrawer(optionsProp, compactMode);
@@ -240,6 +290,7 @@ public partial class FlowSaveConfigWindow
 
             EditorGUILayout.EndVertical();
         }
+
 
         private static bool HasOperation(SerializedProperty operationsProp, OperationMode mode)
         {
@@ -250,7 +301,7 @@ public partial class FlowSaveConfigWindow
             {
                 var element = operationsProp.GetArrayElementAtIndex(i);
                 if (element.propertyType == SerializedPropertyType.Enum &&
-                    element.enumValueIndex == (int)mode)
+                    element.enumDisplayNames[element.enumValueIndex] == mode.ToString())
                 {
                     return true;
                 }
@@ -270,7 +321,16 @@ public partial class FlowSaveConfigWindow
             int index = operationsProp.arraySize;
             operationsProp.InsertArrayElementAtIndex(index);
             var newElement = operationsProp.GetArrayElementAtIndex(index);
-            newElement.enumValueIndex = (int)mode;
+
+            // set by name
+            for (int i = 0; i < newElement.enumDisplayNames.Length; i++)
+            {
+                if (newElement.enumDisplayNames[i] == mode.ToString())
+                {
+                    newElement.enumValueIndex = i;
+                    break;
+                }
+            }
         }
 
         private static void RemoveOperation(SerializedProperty operationsProp, OperationMode mode)
@@ -618,6 +678,42 @@ public partial class FlowSaveConfigWindow
             }
             EditorGUI.indentLevel--;
         }
+
+        private static void DrawObfuscateNameToggle(
+            SerializedProperty operationsListProp,
+            SerializedProperty envProp)
+        {
+            if (operationsListProp == null || envProp == null)
+                return;
+
+            // bool on EnvironmentConfiguration
+            var flagProp = envProp.FindPropertyRelative(nameof(EnvironmentConfiguration.UseFileNameObfuscation));
+
+            // Is this operation present in the Operations list?
+            bool hasOp = HasOperation(operationsListProp, OperationMode.ObfuscateName);
+
+            // Current state: prefer the bool if present, otherwise derive from list
+            bool current = flagProp != null ? flagProp.boolValue : hasOp;
+
+            EditorGUILayout.BeginVertical("box");
+            bool newUse = EditorGUILayout.ToggleLeft("Use Obfuscate Name", current);
+            EditorGUILayout.EndVertical();
+
+            // Update bool
+            if (flagProp != null)
+                flagProp.boolValue = newUse;
+
+            // Keep Operations list in sync (optional but nice)
+            if (newUse && !hasOp)
+            {
+                AddOperation(operationsListProp, OperationMode.ObfuscateName);
+            }
+            else if (!newUse && hasOp)
+            {
+                RemoveOperation(operationsListProp, OperationMode.ObfuscateName);
+            }
+        }
+
     }
 
     private static string GetAppModeLabel(SerializedProperty appModeProp)

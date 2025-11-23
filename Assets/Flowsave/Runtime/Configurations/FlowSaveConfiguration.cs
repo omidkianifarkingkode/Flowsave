@@ -117,6 +117,9 @@ namespace Flowsave.Namespaces
             // Schema
             if (source.SchemaVersion != 1)
                 target.SchemaVersion = source.SchemaVersion;
+
+            if (source.UseFileNameObfuscation)
+                target.UseFileNameObfuscation = true;
         }
 
         private static AppMode GetCurrentMode()
@@ -126,7 +129,7 @@ namespace Flowsave.Namespaces
 #elif DEVELOPMENT_BUILD
             return AppMode.Development;
 #else
-            AppMode.Release;
+            return AppMode.Release;
 #endif
         }
     }

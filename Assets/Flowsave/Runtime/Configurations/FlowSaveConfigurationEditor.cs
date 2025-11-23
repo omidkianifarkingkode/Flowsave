@@ -22,9 +22,18 @@ namespace Flowsave.Namespaces
         [ContextMenu("AddNamespace")]
         public void AddNamespace()
         {
+            if (DefaultEnvironments == null || DefaultEnvironments.Count == 0)
+            {
+                Debug.LogWarning("[FlowSaveConfiguration] DefaultEnvironments is empty – cannot create namespace env.");
+                return;
+            }
+
+            if (Namespaces == null)
+                Namespaces = new List<NamespaceConfiguration>();
+
             var envConfig = EnvironmentConfiguration.Clone(DefaultEnvironments.First());
 
-            var newNs = new NamespaceConfiguration()
+            var newNs = new NamespaceConfiguration
             {
                 NamespaceId = "test",
                 Environments = new List<EnvironmentConfiguration> { envConfig }
@@ -35,6 +44,7 @@ namespace Flowsave.Namespaces
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
         }
+
     }
 }
 

@@ -8,7 +8,6 @@ using Flowsave.Serialization;
 using Flowsave.Storage;
 using System;
 using System.Collections.Generic;   // <-- for HashSet<List>
-using System.Globalization;
 using UnityEditor;
 using UnityEngine;
 
@@ -133,7 +132,9 @@ public partial class FlowSaveConfigWindow
                         labelPrefix: "Env Override",
                         addButtonLabel: "Add Environment Override",
                         showAddButton: false,
-                        compactOptions: true);
+                        compactOptions: true,
+                        allowDelete: true,
+                        allowAppModeEdit: true);
 
                     // 2) AppMode + Add Override row (per namespace)
                     EditorGUILayout.BeginHorizontal();
@@ -286,6 +287,9 @@ public partial class FlowSaveConfigWindow
             int index = envsProp.arraySize;
             envsProp.InsertArrayElementAtIndex(index);
             var newEnv = envsProp.GetArrayElementAtIndex(index);
+
+            var opsProp = newEnv.FindPropertyRelative(nameof(EnvironmentConfiguration.Operations));
+            opsProp?.ClearArray();
 
             var appModePropNew = newEnv.FindPropertyRelative(nameof(EnvironmentConfiguration.AppMode));
             if (appModePropNew != null)

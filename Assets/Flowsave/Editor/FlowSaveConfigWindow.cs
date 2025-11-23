@@ -35,9 +35,9 @@ public partial class FlowSaveConfigWindow : EditorWindow
     {
         _tabs = new IFlowSaveConfigTab[]
         {
-            new DefaultsTab(),
-            new EnvironmentsTab(),
+            new GlobalDefaultsTab(),
             new NamespacesTab(),
+            new OtherSettingsTab(),
         };
 
         _tabTitles = new string[_tabs.Length];

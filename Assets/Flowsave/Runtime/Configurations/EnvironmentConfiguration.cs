@@ -21,6 +21,7 @@ namespace Flowsave.Namespaces
         public SerializationOptions SerializationOptions = new();
         public EncryptionOptions EncryptionOptions = new();
         public SigningOptions SigningOptions = new();
+        public bool UseFileNameObfuscation = false;
 
         public int SchemaVersion = 1;
 
@@ -29,13 +30,17 @@ namespace Flowsave.Namespaces
             {
                 AppMode = from.AppMode,
                 SchemaVersion = from.SchemaVersion,
-                Operations = from.Operations,
+
+                Operations = from.Operations != null
+                    ? new List<OperationMode>(from.Operations)
+                    : new List<OperationMode>(),
 
                 StorageOptions = StorageOptions.Clone(from.StorageOptions),
                 CompressionOptions = CompressionOptions.Clone(from.CompressionOptions),
                 SerializationOptions = SerializationOptions.Clone(from.SerializationOptions),
                 EncryptionOptions = EncryptionOptions.Clone(from.EncryptionOptions),
-                SigningOptions = SigningOptions.Clone(from.SigningOptions)
+                SigningOptions = SigningOptions.Clone(from.SigningOptions),
+                UseFileNameObfuscation = from.UseFileNameObfuscation
             };
 
     }

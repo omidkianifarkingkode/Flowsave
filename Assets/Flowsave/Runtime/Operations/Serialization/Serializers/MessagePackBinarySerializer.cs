@@ -1,6 +1,5 @@
-﻿#if FLOWSAVE_MessagePack
+﻿#if FLOWSAVE_MESSAGEPACK
 
-using Flowsave.Shared;
 using MessagePack;
 
 namespace Flowsave.Serialization
@@ -10,7 +9,7 @@ namespace Flowsave.Serialization
     /// </summary>
     public class MessagePackBinarySerializer : ISerializer
     {
-        public SerializerType Format { get; } = SerializerType.Binary_MessagePack;
+        public SerializationType Format { get; } = SerializationType.Binary_MessagePack;
 
         public byte[] Serialize<T>(T data)
         {
@@ -19,7 +18,7 @@ namespace Flowsave.Serialization
 
         public T Deserialize<T>(byte[] data)
         {
-            return  MessagePackSerializer.Deserialize<T>(data);
+            return MessagePackSerializer.Deserialize<T>(data);
         }
     }
 }

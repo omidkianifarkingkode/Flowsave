@@ -1,8 +1,7 @@
 ﻿#if FLOWSAVE_PROTOBUF_NET
+using ProtoBuf;
 using System;
 using System.IO;
-using Flowsave.Shared;
-using ProtoBuf;
 
 namespace Flowsave.Serialization
 {
@@ -11,7 +10,7 @@ namespace Flowsave.Serialization
     /// </summary>
     public class ProtobufSerializer : ISerializer
     {
-        public SerializerType Format => SerializerType.Binary_Protobuf;
+        public SerializationType Format => SerializationType.Binary_Protobuf;
 
         public byte[] Serialize<T>(T data)
         {

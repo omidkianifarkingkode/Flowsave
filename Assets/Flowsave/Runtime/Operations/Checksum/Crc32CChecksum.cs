@@ -7,7 +7,7 @@ namespace Flowsave.Checksum
     /// </summary>
     public sealed class Crc32CChecksum : IChecksum
     {
-        public ChecksumAlgId Alg => ChecksumAlgId.CRC32C;
+        public ChecksumType Alg => ChecksumType.CRC32C;
         public bool IsNoOp => false;
 
 

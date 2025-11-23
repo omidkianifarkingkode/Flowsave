@@ -1,5 +1,4 @@
-﻿using Flowsave.Namespaces;
-using System;
+﻿using System;
 
 namespace Flowsave.Serialization
 {
@@ -21,10 +20,10 @@ namespace Flowsave.Serialization
                 SerializationType.Binary_Legacy => new LegacyBinaryFormatterSerializer(),
 #pragma warning restore CS0618
 #if FLOWSAVE_PROTOBUF_NET
-                SerializerType.Binary_Protobuf => new ProtobufSerializer(),
+                SerializationType.Binary_Protobuf => new ProtobufSerializer(),
 #endif
-#if FLOWSAVE_MessagePack
-                SerializerType.Binary_MessagePack => new MessagePackBinarySerializer(),
+#if FLOWSAVE_MESSAGEPACK
+                SerializationType.Binary_MessagePack => new MessagePackBinarySerializer(),
 #endif
                 SerializationType.Xml => new XmlSerializer(),
                 _ => throw new InvalidOperationException($"Unsupported serializer type: {serializerType}")
