@@ -10,7 +10,7 @@
                 CompressionType.Deflate => new DeflateCompressor(),
                 CompressionType.Brotli => new BrotliCompressor(),
 #if FLOWSAVE_LZ4
-                CompressionAlgId.LZ4 => new Lz4Compressor(),
+                CompressionType.LZ4 => new Lz4Compressor(),
 #endif
                 _ => throw new System.ArgumentOutOfRangeException(nameof(compressionType), "Unsupported compression algorithm."),
             };

@@ -25,11 +25,14 @@ namespace Flowsave.Namespaces
 
         public EnvironmentConfiguration GetEnvironmentConfiguration(string namespaceId)
         {
+            if (string.IsNullOrEmpty(namespaceId))
+                namespaceId = string.Empty;
+
             // 1. Cached?
-            #if !UNITY_EDITOR
+#if !UNITY_EDITOR
             if (_cache.TryGetValue(namespaceId, out var cached))
                 return cached;
-            #endif
+#endif
 
             var mode = GetCurrentMode();
 
@@ -41,24 +44,25 @@ namespace Flowsave.Namespaces
             var globalEnv = DefaultEnvironments?.FirstOrDefault(e => (e.AppMode & mode) == mode);
             var nsEnv = nsConfig?.Environments?.FirstOrDefault(e => (e.AppMode & mode) == mode);
 
-            // 4. Your flow
+            // 4. Apply in correct precedence:
+            //    Defaults -> Global -> Namespace
             if (nsEnv != null)
             {
-                // Namespace > Global > Defaults
-                ApplyEnvConfig(result, globalEnv);
+                if (globalEnv != null)
+                    ApplyEnvConfig(result, globalEnv);
+
                 ApplyEnvConfig(result, nsEnv);
             }
             else if (globalEnv != null)
             {
-                // Global > Defaults
                 ApplyEnvConfig(result, globalEnv);
             }
-            // else: only default base remains
+            // else: only Defaults
 
-            // 5. Cache the final result
-            #if !UNITY_EDITOR
+            // 5. Cache final resolved env per namespace (builds only)
+#if !UNITY_EDITOR
                 _cache[namespaceId] = result;
-            #endif
+#endif
 
             return result;
         }

@@ -12,7 +12,7 @@ namespace Flowsave.Operations
     {
         private readonly byte[] _key;
         private readonly string _signerId; // key id for rotation/routing
-        private HmacOptions hmac;
+        private readonly int _truncateBytes;
 
         public SigningType Alg => SigningType.Hmac; // not a public-key alg; keep as None or add a new enum value
         public string SignerId => _signerId;
@@ -25,21 +25,40 @@ namespace Flowsave.Operations
             _signerId = keyId ?? string.Empty;
         }
 
-        public HmacSha256Signer(HmacOptions hmac) : this(hmac.Key, hmac.KeyId) { }
+        public HmacSha256Signer(HmacOptions hmac) : this(hmac.Key, hmac.KeyId) 
+        {
+            _truncateBytes = hmac.TruncateTo == HmacTruncate.None ? 0 : (int)hmac.TruncateTo;
+        }
 
         public byte[] Sign(ReadOnlySpan<byte> message)
         {
             using var hmac = new HMACSHA256(_key);
-            return hmac.ComputeHash(message.ToArray());
+            var full = hmac.ComputeHash(message.ToArray());
+
+            if (_truncateBytes <= 0 || _truncateBytes >= full.Length)
+                return full;
+
+            var truncated = new byte[_truncateBytes];
+            Buffer.BlockCopy(full, 0, truncated, 0, _truncateBytes);
+            return truncated;
         }
 
 
         public bool Verify(ReadOnlySpan<byte> message, ReadOnlySpan<byte> signature, string signerId)
         {
             if (!string.IsNullOrEmpty(signerId) && signerId != _signerId) return false;
+
             using var hmac = new HMACSHA256(_key);
-            var calc = hmac.ComputeHash(message.ToArray());
-            return CryptographicOperations.FixedTimeEquals(calc, signature.ToArray());
+            var full = hmac.ComputeHash(message.ToArray());
+
+            ReadOnlySpan<byte> expected = full;
+            if (_truncateBytes > 0 && _truncateBytes < full.Length)
+                expected = full.AsSpan(0, _truncateBytes);
+
+            if (signature.Length != expected.Length)
+                return false;
+
+            return CryptographicOperations.FixedTimeEquals(expected, signature);
         }
     }
 }

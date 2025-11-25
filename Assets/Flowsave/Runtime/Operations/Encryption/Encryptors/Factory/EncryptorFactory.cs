@@ -11,13 +11,13 @@ namespace Flowsave.Operations
             _options = options;
         }
 
-        public IEncryptor CreateSigner(EncryptionType cryptoAlgId)
+        public IEncryptor CreateEncryptor(EncryptionType encryptionType)
         {
-            return cryptoAlgId switch
+            return encryptionType switch
             {
                 EncryptionType.Aes128Gcm => new AesGcmEncryptor(_options.Aes128),
                 EncryptionType.Aes256Gcm => new AesGcmEncryptor(_options.Aes256),
-                _ => throw new NotSupportedException($"The specified crypto algorithm '{cryptoAlgId}' is not supported."),
+                _ => throw new NotSupportedException($"The specified crypto algorithm '{encryptionType}' is not supported."),
             };
         }
     }

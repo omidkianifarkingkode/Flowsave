@@ -18,7 +18,7 @@ namespace Flowsave.Compression
             using var ms = new MemoryStream();
             using (var ds = new DeflateStream(ms, CompressionLevel.Optimal, leaveOpen: true))
             {
-                ds.Write(data);
+                ds.Write(data.ToArray(), 0, data.Length);
             }
             return ms.ToArray();
         }

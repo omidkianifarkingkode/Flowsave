@@ -31,9 +31,10 @@ namespace Flowsave.Storage
         }
 
         public DiskStorageProvider(DiskStorageOptions options) : this(
-            rootDirectory: options.RelativeDirectory,
+            rootDirectory: PathResolver.Resolve(options.PathRoot, options.RelativeDirectory),
             fileExtension: options.FileExtension,
-            keepBackup: options.KeepBackup) { }
+            keepBackup: options.KeepBackup)
+        { }
 
         public async Task SaveAsync(string key, byte[] data)
         {

@@ -9,6 +9,7 @@ namespace Flowsave.Storage
         public StoragePathRoot PathRoot = StoragePathRoot.PersistentDataPath;
         public string RelativeDirectory = "saves/{NAMESPACE}.json";
         public string FileExtension = ".json";
+        public bool Append = false;
         public bool KeepBackup = true;
         public int MaxBackup  = 3;
 
@@ -18,6 +19,7 @@ namespace Flowsave.Storage
                 PathRoot = from.PathRoot,
                 RelativeDirectory = from.RelativeDirectory,
                 FileExtension = from.FileExtension,
+                Append = from.Append,
                 KeepBackup = from.KeepBackup,
                 MaxBackup = from.MaxBackup
             };

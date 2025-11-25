@@ -2,6 +2,6 @@
 {
     public interface IEncryptorFactory
     {
-        IEncryptor CreateSigner(EncryptionType cryptoAlgId);
+        IEncryptor CreateEncryptor(EncryptionType cryptoAlgId);
     }
 }
