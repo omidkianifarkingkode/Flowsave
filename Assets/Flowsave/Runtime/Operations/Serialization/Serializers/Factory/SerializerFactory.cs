@@ -15,6 +15,7 @@ namespace Flowsave.Serialization
         {
             return serializerType switch
             {
+                SerializationType.None => new NoOpSerializer(),
                 SerializationType.Json => new JsonSerializer(_options.Json),
 #pragma warning disable CS0618
                 SerializationType.Binary_Legacy => new LegacyBinaryFormatterSerializer(),
@@ -26,6 +27,7 @@ namespace Flowsave.Serialization
                 SerializationType.Binary_MessagePack => new MessagePackBinarySerializer(),
 #endif
                 SerializationType.Xml => new XmlSerializer(),
+                SerializationType.Csv => new CsvSerializer(),
                 _ => throw new InvalidOperationException($"Unsupported serializer type: {serializerType}")
             };
         }

@@ -1,3 +1,4 @@
+﻿using Flowsave;
 using System;
 using System.IO;
 using System.Linq;
@@ -7,134 +8,272 @@ using System.Threading.Tasks;
 namespace Flowsave.Storage
 {
     /// <summary>
-    /// Async, disk-backed storage provider with best-effort atomic writes.
+    /// Async, disk-backed storage provider with atomic writes (unless Append=true).
+    /// Supports backup retention and configurable path templates.
     /// </summary>
     public sealed class DiskStorageProvider : IStorageProvider
     {
         private readonly string _root;
-        private readonly string _extension;
+        private readonly string _pathTemplate;
+
+        private readonly bool _append;
         private readonly bool _keepBackup;
+        private readonly int _maxBackup;
 
-        /// <param name="rootDirectory">Base folder where records are stored.</param>
-        /// <param name="fileExtension">Optional file extension (e.g., ".dat").</param>
-        /// <param name="keepBackup">If true, keeps a .bak copy of the last version when replacing.</param>
-        public DiskStorageProvider(string rootDirectory,
-                                   string fileExtension = ".dat",
-                                   bool keepBackup = true)
+        public DiskStorageProvider(DiskStorageOptions options)
         {
-            if (string.IsNullOrWhiteSpace(rootDirectory))
-                throw new ArgumentException("Root directory is required.", nameof(rootDirectory));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
 
-            _root = rootDirectory;
-            _extension = string.IsNullOrEmpty(fileExtension) ? ".dat" : (fileExtension.StartsWith(".") ? fileExtension : "." + fileExtension);
-            _keepBackup = keepBackup;
+            _root = PathResolver.Resolve(options.PathRoot, null);
+            _pathTemplate = options.PathTemplate ?? "saves/{NAMESPACE}.json";
+
+            _append = options.Append;
+            _keepBackup = options.KeepBackup;
+            _maxBackup = Math.Max(1, options.MaxBackup);
         }
 
-        public DiskStorageProvider(DiskStorageOptions options) : this(
-            rootDirectory: PathResolver.Resolve(options.PathRoot, options.RelativeDirectory),
-            fileExtension: options.FileExtension,
-            keepBackup: options.KeepBackup)
-        { }
+        // ============================================================
+        // SAVE
+        // ============================================================
 
-        public async Task SaveAsync(string key, byte[] data)
+        public async Task<Result> SaveAsync(string key, byte[] data)
         {
-            if (data == null) throw new ArgumentNullException(nameof(data));
-            var path = GetPath(key);
-            var dir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir!);
+            if (string.IsNullOrWhiteSpace(key))
+                return Result.Failure("Key is required.");
+            if (data == null)
+                return Result.Failure("Data is null.");
 
+            try
+            {
+                var path = GetPath(key);
+                var dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                if (_append)
+                {
+                    return await AppendWriteAsync(path, data).ConfigureAwait(false);
+                }
+                else
+                {
+                    return await AtomicWriteAsync(path, data).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"Disk save failed: {ex.Message}");
+            }
+        }
+
+
+        // ============================================================
+        // ATOMIC WRITE MODE (default)
+        // ============================================================
+
+        private async Task<Result> AtomicWriteAsync(string path, byte[] data)
+        {
             var tmp = path + ".tmp";
 
-            // Write temp file asynchronously
-            // useAsync:true enables true async I/O on supported platforms.
-            using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None,
-                                           bufferSize: 64 * 1024, useAsync: true))
+            using (var fs = new FileStream(tmp,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                64 * 1024,
+                useAsync: true))
             {
                 await fs.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
                 await fs.FlushAsync().ConfigureAwait(false);
             }
 
-            // If destination exists, optionally keep a backup and atomically replace where supported.
-            if (File.Exists(path))
-            {
-                if (_keepBackup)
-                {
-                    var bak = path + ".bak";
-                    try { File.Copy(path, bak, overwrite: true); } catch { /* best-effort */ }
-                }
+            // Backup rotation
+            if (_keepBackup && File.Exists(path))
+                RotateBackups(path);
 
-                // On Windows/.NET, File.Replace is an atomic replace into existing file.
-                try
-                {
-                    // If File.Replace throws (e.g., not supported), fall back to delete+move.
-                    File.Replace(tmp, path, destinationBackupFileName: null, ignoreMetadataErrors: true);
-                    return;
-                }
-                catch
-                {
-                    try { File.Delete(path); } catch { /* best-effort */ }
-                }
+            try
+            {
+                // Try atomic replace
+                File.Replace(tmp, path, null, ignoreMetadataErrors: true);
+                return Result.Success();
+            }
+            catch
+            {
+                // Fallback to delete + move
+                try { if (File.Exists(path)) File.Delete(path); } catch { }
             }
 
-            // Move tmp into place (first write / fallback path)
             File.Move(tmp, path);
+            return Result.Success();
         }
 
-        public async Task<byte[]> LoadAsync(string key)
-        {
-            var path = GetPath(key);
-            if (!File.Exists(path))
-                throw new InvalidOperationException($"Key not found: {key}");
+        // ============================================================
+        // APPEND MODE
+        // ============================================================
 
-            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
-                                           bufferSize: 64 * 1024, useAsync: true))
+        private async Task<Result> AppendWriteAsync(string path, byte[] data)
+        {
+            // Create directory if needed
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            // Optional backup
+            if (_keepBackup && File.Exists(path))
+                RotateBackups(path);
+
+            using var fs = new FileStream(path,
+                FileMode.Append,
+                FileAccess.Write,
+                FileShare.None,
+                64 * 1024,
+                useAsync: true);
+
+            await fs.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
+            await fs.FlushAsync().ConfigureAwait(false);
+
+            return Result.Success();
+        }
+
+        // ============================================================
+        // BACKUP ROTATION
+        // ============================================================
+
+        private void RotateBackups(string path)
+        {
+            // bak.1 ... bak.N (N oldest)
+            for (int i = _maxBackup - 1; i >= 1; i--)
             {
+                string older = $"{path}.bak.{i}";
+                string newer = $"{path}.bak.{i + 1}";
+
+                if (File.Exists(newer)) File.Delete(newer);
+                if (File.Exists(older)) File.Move(older, newer);
+            }
+
+            // Move main file → bak.1
+            string bak1 = $"{path}.bak.1";
+
+            if (File.Exists(bak1))
+                File.Delete(bak1);
+
+            File.Copy(path, bak1, overwrite: true);
+        }
+
+        // ============================================================
+        // LOAD
+        // ============================================================
+
+        public async Task<Result<byte[]>> LoadAsync(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return Result<byte[]>.Failure("Key is required.");
+
+            try
+            {
+                var path = GetPath(key);
+                if (!File.Exists(path))
+                    return Result<byte[]>.Failure($"Key not found: {key}");
+
+                using var fs = new FileStream(path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    64 * 1024,
+                    useAsync: true);
+
                 var len = fs.Length;
-                if (len > int.MaxValue) throw new IOException("File too large to load into memory.");
+                if (len > int.MaxValue)
+                    return Result<byte[]>.Failure("File too large.");
+
                 var buffer = new byte[len];
-                int read, offset = 0;
-                while ((read = await fs.ReadAsync(buffer, offset, buffer.Length - offset).ConfigureAwait(false)) > 0)
+
+                int offset = 0;
+                while (true)
+                {
+                    int read = await fs.ReadAsync(buffer, offset, buffer.Length - offset).ConfigureAwait(false);
+                    if (read == 0) break;
                     offset += read;
-                return buffer;
+                }
+
+                return Result<byte[]>.Success(buffer);
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure($"Disk load failed: {ex.Message}");
             }
         }
 
-        public Task DeleteAsync(string key)
+        // ============================================================
+        // DELETE
+        // ============================================================
+
+        public Task<Result> DeleteAsync(string key)
         {
-            var path = GetPath(key);
-            if (File.Exists(path))
-                File.Delete(path);
+            if (string.IsNullOrWhiteSpace(key))
+                return Result.Failure("Key is required.").ToTask();
 
-            // Clean up temp/backup if present
-            var tmp = path + ".tmp"; if (File.Exists(tmp)) File.Delete(tmp);
-            var bak = path + ".bak"; if (File.Exists(bak)) File.Delete(bak);
+            try
+            {
+                var path = GetPath(key);
 
-            return Task.CompletedTask;
+                if (File.Exists(path))
+                    File.Delete(path);
+
+                if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+
+                for (int i = 1; i <= _maxBackup; i++)
+                {
+                    var bak = $"{path}.bak.{i}";
+                    if (File.Exists(bak)) File.Delete(bak);
+                }
+
+                return Result.Success().ToTask();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"Disk delete failed: {ex.Message}").ToTask();
+            }
         }
 
-        public Task<bool> ExistsAsync(string key)
+        // ============================================================
+        // EXISTS
+        // ============================================================
+
+        public Task<Result<bool>> ExistsAsync(string key)
         {
-            var path = GetPath(key);
-            return Task.FromResult(File.Exists(path));
+            if (string.IsNullOrWhiteSpace(key))
+                return Result<bool>.Failure("Key is required.").ToTask();
+
+            try
+            {
+                var path = GetPath(key);
+                return Result<bool>.Success(File.Exists(path)).ToTask();
+            }
+            catch (Exception ex)
+            {
+                return Result<bool>.Failure($"Exists check failed: {ex.Message}").ToTask();
+            }
         }
+
+        // ============================================================
+        // PATH + SANITIZATION
+        // ============================================================
 
         private string GetPath(string key)
         {
-            if (string.IsNullOrWhiteSpace(key))
-                throw new ArgumentException("Key is required.", nameof(key));
-
-            // Prevent directory traversal and invalid characters
             var safe = SanitizeKey(key);
-            return Path.Combine(_root, safe + _extension);
+            var local = _pathTemplate.Replace("{NAMESPACE}", safe);
+            return Path.Combine(_root, local);
         }
 
         private static string SanitizeKey(string key)
         {
             var invalid = Path.GetInvalidFileNameChars();
             var sb = new StringBuilder(key.Length);
+
             foreach (var ch in key)
-                sb.Append(invalid.Contains(ch) || ch == Path.DirectorySeparatorChar || ch == Path.AltDirectorySeparatorChar ? '_' : ch);
+                sb.Append(invalid.Contains(ch) ? '_' : ch);
+
             return sb.ToString();
         }
     }

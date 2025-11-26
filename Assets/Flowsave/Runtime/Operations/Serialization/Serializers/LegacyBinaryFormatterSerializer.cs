@@ -13,19 +13,34 @@ namespace Flowsave.Serialization
     {
         public SerializationType Format { get; } = SerializationType.Binary_Legacy;
 
-        public byte[] Serialize<T>(T data)
+        public Result<byte[]> Serialize<T>(T data)
         {
-            using var memoryStream = new MemoryStream();
-            var formatter = new BinaryFormatter();
-            formatter.Serialize(memoryStream, data);
-            return memoryStream.ToArray();
+            try
+            {
+                using var ms = new MemoryStream();
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(ms, data);
+                return Result<byte[]>.Success(ms.ToArray());
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure($"BinaryFormatter serialize failed: {ex.Message}");
+            }
         }
 
-        public T Deserialize<T>(byte[] data)
+        public Result<T> Deserialize<T>(byte[] data)
         {
-            using var memoryStream = new MemoryStream(data);
-            var formatter = new BinaryFormatter();
-            return (T)formatter.Deserialize(memoryStream);
+            try
+            {
+                using var ms = new MemoryStream(data);
+                var formatter = new BinaryFormatter();
+                T obj = (T)formatter.Deserialize(ms);
+                return Result<T>.Success(obj);
+            }
+            catch (Exception ex)
+            {
+                return Result<T>.Failure($"BinaryFormatter deserialize failed: {ex.Message}");
+            }
         }
     }
 }

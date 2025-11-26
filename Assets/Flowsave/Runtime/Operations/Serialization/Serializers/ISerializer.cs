@@ -16,7 +16,7 @@
         /// <typeparam name="T">Type of the instance to serialize.</typeparam>
         /// <param name="data">Instance to serialize.</param>
         /// <returns>Binary payload representing the instance.</returns>
-        byte[] Serialize<T>(T data);
+        Result<byte[]> Serialize<T>(T data);
 
         /// <summary>
         /// Deserializes the provided payload into an instance of <typeparamref name="T"/>.
@@ -24,6 +24,6 @@
         /// <typeparam name="T">Target type.</typeparam>
         /// <param name="data">Binary payload to deserialize.</param>
         /// <returns>Instance of <typeparamref name="T"/> reconstructed from the payload.</returns>
-        T Deserialize<T>(byte[] data);
+        Result<T> Deserialize<T>(byte[] data);
     }
 }

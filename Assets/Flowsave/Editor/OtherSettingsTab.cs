@@ -39,6 +39,12 @@ public partial class FlowSaveConfigWindow
                 requiredTypes: new[] { "LZ4.LZ4Codec" },
                 description: "https://github.com/MiloszKrajewski/lz4net"
             ),
+            new(
+                displayName: "UniTask",
+                defineSymbol: "FLOWSAVE_UNITASK",
+                requiredTypes: new[] { "Cysharp.Threading.Tasks.UniTask" },
+                description: "https://github.com/Cysharp/UniTask"
+            ),
         };
 
 
@@ -57,7 +63,7 @@ public partial class FlowSaveConfigWindow
         {
             EditorGUILayout.LabelField("Dependency Resolver", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "These dependencies are optional features (Protobuf, MessagePack, LZ4, etc.).\n" +
+                "These dependencies are optional features (Protobuf, MessagePack, LZ4, UniTask, etc.).\n" +
                 "Status is based on whether the DLL types can be found and/or the scripting define symbol is set.",
                 MessageType.Info);
 
@@ -103,18 +109,18 @@ public partial class FlowSaveConfigWindow
 
             var statusStyle = new GUIStyle(EditorStyles.label);
 
-            if ((hasTypes && !hasDefine) || (!hasTypes && hasDefine)) 
+            if ((hasTypes && !hasDefine) || (!hasTypes && hasDefine))
             {
                 statusStyle.normal.textColor = Color.yellow;
                 statusStyle.fontStyle = FontStyle.Bold;
             }
 
-            if (installed) 
+            if (installed)
             {
                 statusStyle.normal.textColor = Color.green;
                 statusStyle.fontStyle = FontStyle.Bold;
             }
-            
+
             if (notInstalled)
             {
                 statusStyle.normal.textColor = Color.red;

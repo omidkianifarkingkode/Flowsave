@@ -12,23 +12,32 @@ namespace Flowsave.Serialization
     {
         public SerializationType Format => SerializationType.Binary_Protobuf;
 
-        public byte[] Serialize<T>(T data)
+        public Result<byte[]> Serialize<T>(T data)
         {
-            if (data == null)
-                throw new ArgumentNullException(nameof(data));
-
-            using var ms = new MemoryStream();
-            Serializer.Serialize(ms, data);
-            return ms.ToArray();
+            try
+            {
+                using var ms = new MemoryStream();
+                Serializer.Serialize(ms, data);
+                return Result<byte[]>.Success(ms.ToArray());
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure($"Protobuf serialize failed: {ex.Message}");
+            }
         }
 
-        public T Deserialize<T>(byte[] data)
+        public Result<T> Deserialize<T>(byte[] data)
         {
-            if (data == null)
-                throw new ArgumentNullException(nameof(data));
-
-            using var ms = new MemoryStream(data);
-            return Serializer.Deserialize<T>(ms);
+            try
+            {
+                using var ms = new MemoryStream(data);
+                T obj = Serializer.Deserialize<T>(ms);
+                return Result<T>.Success(obj);
+            }
+            catch (Exception ex)
+            {
+                return Result<T>.Failure($"Protobuf deserialize failed: {ex.Message}");
+            }
         }
     }
 }

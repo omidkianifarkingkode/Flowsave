@@ -1,48 +1,64 @@
-using Flowsave.Namespaces;
-using Flowsave.Serialization;
+using Flowsave;
+using Flowsave.Configurations;
 using UnityEngine;
 
 namespace Flowsave.Unity
 {
+    /// <summary>
+    /// Bootstraps FlowSave and exposes a global IFlowSaveService instance.
+    /// Drop this on a GameObject in your first scene (or a dedicated bootstrap scene).
+    /// </summary>
     public sealed class FlowSaveBootstrapper : MonoBehaviour
     {
+        private static bool _initialized;
+
         [Header("Config Repository")]
-        [SerializeField] private FlowSaveConfiguration configRepository;
+        [SerializeField] private FlowSaveConfiguration configuration;
 
         [Header("Environment")]
         [SerializeField] private bool overrideEditorMode;
         [SerializeField] private AppMode editorModeOverride = AppMode.Editor;
 
-        public static IFlowSaveService Service { get; private set; }
+        /// <summary>
+        /// Global FlowSave service instance.
+        /// </summary>
+        public static IFlowSave Service { get; private set; }
 
-        void Awake()
+        /// <summary>
+        /// True if FlowSave has been initialized successfully.
+        /// </summary>
+        public static bool IsInitialized => Service != null && _initialized;
+
+        private void Awake()
         {
-            // Basic guard
-            if (Service != null && Service is { })
+            // Simple singleton guard
+            if (_initialized)
             {
+                // If a second bootstrapper appears, destroy it.
                 Destroy(gameObject);
                 return;
             }
 
-            DontDestroyOnLoad(gameObject);
+            if (configuration == null)
+            {
+                Debug.LogError("[FlowSaveBootstrapper] ConfigRepository is not assigned.");
+                return;
+            }
 
-            // Create environment
-            //IAppEnvironment appEnv = new DefaultAppEnvironment();
-
+            // Optional: override AppMode in the editor for testing
 #if UNITY_EDITOR
             if (overrideEditorMode)
             {
-                // simple wrapper to inject forced mode
-              //  appEnv = new ForcedAppEnvironment(appEnv, editorModeOverride);
+                FlowSaveConfiguration.ModeResolver = () => editorModeOverride;
             }
 #endif
 
-            var serializerFactory = new SerializerFactory(default);
+            // Create the FlowSave service
+            Service = new FlowSaveService(configuration);
+            _initialized = true;
 
-            //Service = new FlowSaveService(
-            //    configRepository,
-            //    appEnv,
-            //    serializerFactory);
+            // Keep this across scene loads
+            DontDestroyOnLoad(gameObject);
 
             Debug.Log("[FlowSaveBootstrapper] FlowSave initialized.");
         }

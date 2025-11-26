@@ -1,7 +1,7 @@
 ﻿#if UNITY_EDITOR
 
 using Flowsave.Compression;
-using Flowsave.Namespaces;
+using Flowsave.Configurations;
 using Flowsave.Operations;
 using Flowsave.Operations.Options;
 using Flowsave.Serialization;
@@ -163,9 +163,6 @@ public partial class FlowSaveConfigWindow
                             DrawSigningOptionsContent,
                             compactOptions
                         );
-
-                        // Compression
-                        DrawObfuscateNameToggle(operationsListProp, envProp);
                     }
 
                 }
@@ -505,6 +502,10 @@ public partial class FlowSaveConfigWindow
                 return;
             }
 
+            var obfProp = storageProp.FindPropertyRelative(nameof(StorageOptions.ObfuscateFileName));
+            EditorGUILayout.Space(2f);
+            obfProp.boolValue = EditorGUILayout.ToggleLeft("Obfuscate File Name", obfProp.boolValue);
+
             // Always show the type
             EditorGUILayout.PropertyField(storageTypeProp);
 
@@ -678,42 +679,6 @@ public partial class FlowSaveConfigWindow
             }
             EditorGUI.indentLevel--;
         }
-
-        private static void DrawObfuscateNameToggle(
-            SerializedProperty operationsListProp,
-            SerializedProperty envProp)
-        {
-            if (operationsListProp == null || envProp == null)
-                return;
-
-            // bool on EnvironmentConfiguration
-            var flagProp = envProp.FindPropertyRelative(nameof(EnvironmentConfiguration.UseFileNameObfuscation));
-
-            // Is this operation present in the Operations list?
-            bool hasOp = HasOperation(operationsListProp, OperationMode.ObfuscateName);
-
-            // Current state: prefer the bool if present, otherwise derive from list
-            bool current = flagProp != null ? flagProp.boolValue : hasOp;
-
-            EditorGUILayout.BeginVertical("box");
-            bool newUse = EditorGUILayout.ToggleLeft("Use Obfuscate Name", current);
-            EditorGUILayout.EndVertical();
-
-            // Update bool
-            if (flagProp != null)
-                flagProp.boolValue = newUse;
-
-            // Keep Operations list in sync (optional but nice)
-            if (newUse && !hasOp)
-            {
-                AddOperation(operationsListProp, OperationMode.ObfuscateName);
-            }
-            else if (!newUse && hasOp)
-            {
-                RemoveOperation(operationsListProp, OperationMode.ObfuscateName);
-            }
-        }
-
     }
 
     private static string GetAppModeLabel(SerializedProperty appModeProp)

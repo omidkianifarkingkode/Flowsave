@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 
 
-namespace Flowsave.Namespaces
+namespace Flowsave.Configurations
 {
     [CreateAssetMenu(fileName = "FlowSaveConfiguration", menuName = "FlowSave/Config Repository", order = 2)]
     public partial class FlowSaveConfiguration

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Threading.Tasks;
+using Flowsave;
 using UnityEngine;
 
 namespace Flowsave.Storage
@@ -16,9 +17,6 @@ namespace Flowsave.Storage
         private readonly int _chunkChars;
         private readonly bool _autoSave;
 
-        /// <param name="prefix">Prefix added to all PlayerPrefs keys (namespacing).</param>
-        /// <param name="chunkChars">Chunk size in characters for Base64 data. 16k is a conservative default.</param>
-        /// <param name="autoSave">If true, calls PlayerPrefs.Save() after each mutation.</param>
         public PlayerPrefsStorageProvider(string prefix = "fs:", int chunkChars = 16_384, bool autoSave = true)
         {
             if (string.IsNullOrEmpty(prefix)) prefix = "fs:";
@@ -30,90 +28,133 @@ namespace Flowsave.Storage
         public PlayerPrefsStorageProvider(PlayerPrefsStorageOptions options)
             : this(options.Prefix, options.ChunkChars, options.AutoSave) { }
 
-        public Task SaveAsync(string key, byte[] data)
+        public Task<Result> SaveAsync(string key, byte[] data)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            if (key == null)
+                return Result.Failure("Key is null.").ToTask();
+            if (data == null)
+                return Result.Failure("Data is null.").ToTask();
 
-            string b64 = Convert.ToBase64String(data);
-            int newCount = (int)Math.Ceiling((double)b64.Length / _chunkChars);
-            if (newCount == 0) newCount = 1; // store at least 1 chunk (empty string)
-
-            int oldCount = GetCount(key);
-
-            // write chunks
-            for (int i = 0; i < newCount; i++)
+            try
             {
-                int start = i * _chunkChars;
-                int len = Math.Min(_chunkChars, b64.Length - start);
-                string chunk = len > 0 ? b64.Substring(start, len) : string.Empty;
-                PlayerPrefs.SetString(ChunkKey(key, i), chunk);
-            }
+                string b64 = Convert.ToBase64String(data);
+                int newCount = (int)Math.Ceiling((double)b64.Length / _chunkChars);
+                if (newCount == 0) newCount = 1;
 
-            // remove any leftover old chunks
-            for (int i = newCount; i < oldCount; i++)
-            {
-                PlayerPrefs.DeleteKey(ChunkKey(key, i));
-            }
+                int oldCount = GetCount(key);
 
-            // set count last
-            PlayerPrefs.SetInt(CountKey(key), newCount);
-
-            if (_autoSave) PlayerPrefs.Save();
-            return Task.CompletedTask;
-        }
-
-        public Task<byte[]> LoadAsync(string key)
-        {
-            if (!HasKey(key)) throw new InvalidOperationException($"Key not found: {key}");
-
-            int count = GetCount(key);
-            if (count <= 0)
-            {
-                // legacy single-key fallback
-                if (PlayerPrefs.HasKey(LegacyKey(key)))
+                for (int i = 0; i < newCount; i++)
                 {
-                    string s = PlayerPrefs.GetString(LegacyKey(key), string.Empty);
-                    return Task.FromResult(Convert.FromBase64String(s));
+                    int start = i * _chunkChars;
+                    int len = Math.Min(_chunkChars, b64.Length - start);
+                    string chunk = len > 0 ? b64.Substring(start, len) : string.Empty;
+                    PlayerPrefs.SetString(ChunkKey(key, i), chunk);
                 }
-                throw new InvalidOperationException($"Corrupt PlayerPrefs entry for key: {key}");
-            }
 
-            var sb = new StringBuilder(count * _chunkChars);
-            for (int i = 0; i < count; i++)
+                for (int i = newCount; i < oldCount; i++)
+                    PlayerPrefs.DeleteKey(ChunkKey(key, i));
+
+                PlayerPrefs.SetInt(CountKey(key), newCount);
+
+                if (_autoSave) PlayerPrefs.Save();
+
+                return Result.Success().ToTask();
+            }
+            catch (Exception ex)
             {
-                sb.Append(PlayerPrefs.GetString(ChunkKey(key, i), string.Empty));
+                return Result.Failure($"PlayerPrefs save failed: {ex.Message}").ToTask();
             }
-
-            string b64 = sb.ToString();
-            byte[] data = Convert.FromBase64String(b64);
-            return Task.FromResult(data);
         }
 
-        public Task DeleteAsync(string key)
+        public Task<Result<byte[]>> LoadAsync(string key)
         {
-            if (!HasKey(key)) return Task.CompletedTask;
+            if (key == null)
+                return Result<byte[]>.Failure("Key is null.").ToTask();
 
-            int count = GetCount(key);
-            for (int i = 0; i < count; i++)
+            try
             {
-                PlayerPrefs.DeleteKey(ChunkKey(key, i));
-            }
-            PlayerPrefs.DeleteKey(CountKey(key));
-            PlayerPrefs.DeleteKey(LegacyKey(key)); // cleanup legacy too
+                if (!HasKey(key))
+                    return Result<byte[]>.Failure($"Key not found: {key}").ToTask();
 
-            if (_autoSave) PlayerPrefs.Save();
-            return Task.CompletedTask;
+                int count = GetCount(key);
+                if (count <= 0)
+                {
+                    if (PlayerPrefs.HasKey(LegacyKey(key)))
+                    {
+                        string s = PlayerPrefs.GetString(LegacyKey(key), string.Empty);
+                        byte[] legacy = Convert.FromBase64String(s);
+                        return Result<byte[]>.Success(legacy).ToTask();
+                    }
+
+                    return Result<byte[]>.Failure($"Corrupt PlayerPrefs entry for key: {key}").ToTask();
+                }
+
+                var sb = new StringBuilder(count * _chunkChars);
+                for (int i = 0; i < count; i++)
+                    sb.Append(PlayerPrefs.GetString(ChunkKey(key, i), string.Empty));
+
+                string b64 = sb.ToString();
+                byte[] data = Convert.FromBase64String(b64);
+
+                return Result<byte[]>.Success(data).ToTask();
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure($"PlayerPrefs load failed: {ex.Message}").ToTask();
+            }
         }
 
-        public Task<bool> ExistsAsync(string key) => Task.FromResult(HasKey(key));
+        public Task<Result> DeleteAsync(string key)
+        {
+            if (key == null)
+                return Result.Failure("Key is null.").ToTask();
 
-        // ===== Helpers =====
+            try
+            {
+                if (!HasKey(key))
+                    return Result.Success().ToTask(); // nothing to delete
+
+                int count = GetCount(key);
+                for (int i = 0; i < count; i++)
+                    PlayerPrefs.DeleteKey(ChunkKey(key, i));
+
+                PlayerPrefs.DeleteKey(CountKey(key));
+                PlayerPrefs.DeleteKey(LegacyKey(key));
+
+                if (_autoSave) PlayerPrefs.Save();
+
+                return Result.Success().ToTask();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"PlayerPrefs delete failed: {ex.Message}").ToTask();
+            }
+        }
+
+        public Task<Result<bool>> ExistsAsync(string key)
+        {
+            if (key == null)
+                return Result<bool>.Failure("Key is null.").ToTask();
+
+            try
+            {
+                bool exists = HasKey(key);
+                return Result<bool>.Success(exists).ToTask();
+            }
+            catch (Exception ex)
+            {
+                return Result<bool>.Failure($"PlayerPrefs exists check failed: {ex.Message}").ToTask();
+            }
+        }
+
+        // Helpers
         private string CountKey(string key) => _prefix + key + "__count";
         private string ChunkKey(string key, int i) => _prefix + key + "__" + i.ToString();
-        private string LegacyKey(string key) => _prefix + key; // old single-string storage
+        private string LegacyKey(string key) => _prefix + key;
 
         private int GetCount(string key) => PlayerPrefs.GetInt(CountKey(key), 0);
-        private bool HasKey(string key) => PlayerPrefs.HasKey(CountKey(key)) || PlayerPrefs.HasKey(LegacyKey(key));
+
+        private bool HasKey(string key) =>
+            PlayerPrefs.HasKey(CountKey(key)) || PlayerPrefs.HasKey(LegacyKey(key));
     }
 }

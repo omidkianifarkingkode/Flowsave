@@ -5,9 +5,12 @@ namespace Flowsave.Operations
     public interface ISigner
     {
         SigningType Alg { get; }
-        string SignerId { get; } // key ID or account ID
-        byte[] Sign(ReadOnlySpan<byte> message);
-        bool Verify(ReadOnlySpan<byte> message, ReadOnlySpan<byte> signature, string signerId);
         bool IsNoOp { get; }
+
+        /// <summary>Wraps payload and signature into a single envelope.</summary>
+        Result<byte[]> Sign(byte[] payload);
+
+        /// <summary>Validates signature and returns the original payload on success.</summary>
+        Result<byte[]> Verify(byte[] signedEnvelope);
     }
 }

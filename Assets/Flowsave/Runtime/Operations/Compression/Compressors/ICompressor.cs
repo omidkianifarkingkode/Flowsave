@@ -1,13 +1,11 @@
-﻿using System;
-
-namespace Flowsave.Compression
+﻿namespace Flowsave.Compression
 {
-
     public interface ICompressor
     {
-        byte[] Compress(ReadOnlySpan<byte> data);
-        byte[] Decompress(ReadOnlySpan<byte> data);
         CompressionType AlgId { get; }
         bool IsNoOp { get; }
+
+        Result<byte[]> Compress(byte[] data);
+        Result<byte[]> Decompress(byte[] data);
     }
 }

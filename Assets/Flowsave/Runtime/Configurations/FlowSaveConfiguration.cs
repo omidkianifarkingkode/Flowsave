@@ -8,7 +8,7 @@ using System.Linq;
 
 using UnityEngine;
 
-namespace Flowsave.Namespaces
+namespace Flowsave.Configurations
 {
     public partial class FlowSaveConfiguration : ScriptableObject
     {
@@ -20,6 +20,12 @@ namespace Flowsave.Namespaces
         [Space()]
         public List<EnvironmentConfiguration> DefaultEnvironments;
         public List<NamespaceConfiguration> Namespaces;
+
+        /// <summary>
+        /// Optional delegate to override the runtime AppMode resolution.
+        /// If null, compile-time symbols (UNITY_EDITOR / DEVELOPMENT_BUILD) are used.
+        /// </summary>
+        public static System.Func<AppMode> ModeResolver { get; set; }
 
         private readonly Dictionary<string, EnvironmentConfiguration> _cache = new();
 
@@ -121,13 +127,14 @@ namespace Flowsave.Namespaces
             // Schema
             if (source.SchemaVersion != 1)
                 target.SchemaVersion = source.SchemaVersion;
-
-            if (source.UseFileNameObfuscation)
-                target.UseFileNameObfuscation = true;
         }
 
         private static AppMode GetCurrentMode()
         {
+            // Runtime override (used by FlowSaveBootstrapper)
+            if (ModeResolver != null)
+                return ModeResolver();
+
 #if UNITY_EDITOR
             return AppMode.Editor;
 #elif DEVELOPMENT_BUILD

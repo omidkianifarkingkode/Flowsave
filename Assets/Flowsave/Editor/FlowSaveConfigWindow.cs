@@ -2,7 +2,7 @@
 
 using UnityEditor;
 using UnityEngine;
-using Flowsave.Namespaces;
+using Flowsave.Configurations;
 
 public partial class FlowSaveConfigWindow : EditorWindow
 {

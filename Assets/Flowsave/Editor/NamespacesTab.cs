@@ -1,7 +1,7 @@
 ﻿#if UNITY_EDITOR
 
 using Flowsave.Compression;
-using Flowsave.Namespaces;
+using Flowsave.Configurations;
 using Flowsave.Operations;
 using Flowsave.Operations.Options;
 using Flowsave.Serialization;

@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Text;
 
 namespace Flowsave.Serialization
@@ -21,16 +22,35 @@ namespace Flowsave.Serialization
             };
         }
 
-        public byte[] Serialize<T>(T data)
+        public Result<byte[]> Serialize<T>(T data)
         {
-            var json = JsonConvert.SerializeObject(data, _settings);
-            return Encoding.UTF8.GetBytes(json);
+            try
+            {
+                string json = JsonConvert.SerializeObject(data, _settings);
+                byte[] bytes = Encoding.UTF8.GetBytes(json);
+                return Result<byte[]>.Success(bytes);
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure($"JSON serialize failed: {ex.Message}");
+            }
         }
 
-        public T Deserialize<T>(byte[] data)
+        public Result<T> Deserialize<T>(byte[] data)
         {
-            var json = Encoding.UTF8.GetString(data);
-            return JsonConvert.DeserializeObject<T>(json, _settings);
+            if (data == null)
+                return Result<T>.Failure("Input is null.");
+
+            try
+            {
+                string json = Encoding.UTF8.GetString(data);
+                T obj = JsonConvert.DeserializeObject<T>(json, _settings);
+                return Result<T>.Success(obj);
+            }
+            catch (Exception ex)
+            {
+                return Result<T>.Failure($"JSON deserialize failed: {ex.Message}");
+            }
         }
     }
 }

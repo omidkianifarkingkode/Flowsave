@@ -15,6 +15,7 @@ namespace Flowsave.Operations
         {
             return encryptionType switch
             {
+                EncryptionType.None => new NoOpEncryptor(),
                 EncryptionType.Aes128Gcm => new AesGcmEncryptor(_options.Aes128),
                 EncryptionType.Aes256Gcm => new AesGcmEncryptor(_options.Aes256),
                 _ => throw new NotSupportedException($"The specified crypto algorithm '{encryptionType}' is not supported."),

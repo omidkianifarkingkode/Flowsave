@@ -6,6 +6,7 @@ namespace Flowsave.Storage
     public class DefaultStorageOptions
     {
         public StorageType StorageType = StorageType.FileSystem;
+        public bool ObfuscateFileName = false;
         public DiskStorageOptions DiskStorage = new();
         public PlayerPrefsStorageOptions PlayerPrefsStorage = new();
     }
@@ -20,6 +21,7 @@ namespace Flowsave.Storage
             {
                 UseDefault = true, // ALWAYS true when cloning from defaults
 
+                ObfuscateFileName = from.ObfuscateFileName,
                 StorageType = from.StorageType,
                 DiskStorage = DiskStorageOptions.Clone(from.DiskStorage),
                 PlayerPrefsStorage = PlayerPrefsStorageOptions.Clone(from.PlayerPrefsStorage)
@@ -30,6 +32,7 @@ namespace Flowsave.Storage
             {
                 UseDefault = from.UseDefault,
 
+                ObfuscateFileName = from.ObfuscateFileName,
                 StorageType = from.StorageType,
                 DiskStorage = DiskStorageOptions.Clone(from.DiskStorage),
                 PlayerPrefsStorage = PlayerPrefsStorageOptions.Clone(from.PlayerPrefsStorage)

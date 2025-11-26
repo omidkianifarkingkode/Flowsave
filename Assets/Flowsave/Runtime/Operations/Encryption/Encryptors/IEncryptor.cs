@@ -4,24 +4,14 @@ namespace Flowsave.Operations
 {
     public interface IEncryptor
     {
-        // Algorithm identity (e.g., AES-256-GCM)
         EncryptionType Alg { get; }
+        bool IsNoOp { get; }
 
 
-        // Sizes for the current algorithm
-        int NonceSize { get; } // bytes (e.g., 12 for GCM)
-        int TagSize { get; } // bytes (e.g., 16 for GCM)
+        /// <summary>Encrypts plaintext and returns an envelope (nonce+tag+ciphertext, or whatever format).</summary>
+        Result<byte[]> Encrypt(byte[] plaintext);
 
-
-        // Optional: nonce strategy hint
-        NonceStrategy Strategy { get; }
-
-
-        // Encrypt plaintext with associated data (AAD). Must return freshly generated nonce.
-        (byte[] Nonce, byte[] Ciphertext, byte[] Tag) Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> aad);
-
-
-        // Decrypt and authenticate. MUST throw on authentication failure.
-        byte[] Decrypt(ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> tag, ReadOnlySpan<byte> aad);
+        /// <summary>Decrypts a previously produced envelope.</summary>
+        Result<byte[]> Decrypt(byte[] encryptedEnvelope);
     }
 }

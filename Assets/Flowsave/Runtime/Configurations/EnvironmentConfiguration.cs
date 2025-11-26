@@ -6,7 +6,7 @@ using Flowsave.Storage;
 using System;
 using System.Collections.Generic;
 
-namespace Flowsave.Namespaces
+namespace Flowsave.Configurations
 {
     [Serializable]
     public class EnvironmentConfiguration
@@ -21,7 +21,6 @@ namespace Flowsave.Namespaces
         public SerializationOptions SerializationOptions = new();
         public EncryptionOptions EncryptionOptions = new();
         public SigningOptions SigningOptions = new();
-        public bool UseFileNameObfuscation = false;
 
         public int SchemaVersion = 1;
 
@@ -40,7 +39,6 @@ namespace Flowsave.Namespaces
                 SerializationOptions = SerializationOptions.Clone(from.SerializationOptions),
                 EncryptionOptions = EncryptionOptions.Clone(from.EncryptionOptions),
                 SigningOptions = SigningOptions.Clone(from.SigningOptions),
-                UseFileNameObfuscation = from.UseFileNameObfuscation
             };
 
     }

@@ -13,25 +13,44 @@ namespace Flowsave.Compression
         public CompressionType AlgId => CompressionType.Brotli;
         public bool IsNoOp => false;
 
-
-        public byte[] Compress(ReadOnlySpan<byte> data)
+        public Result<byte[]> Compress(byte[] data)
         {
-            using var ms = new MemoryStream();
-            using (var bs = new BrotliStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+            if (data == null)
+                return Result<byte[]>.Failure("Data is null.");
+
+            try
             {
-                bs.Write(data);
+                using var ms = new MemoryStream();
+                using (var bs = new BrotliStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+                {
+                    bs.Write(data, 0, data.Length);
+                }
+                return Result<byte[]>.Success(ms.ToArray());
             }
-            return ms.ToArray();
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure(ex.Message);
+            }
         }
 
-
-        public byte[] Decompress(ReadOnlySpan<byte> data)
+        public Result<byte[]> Decompress(byte[] data)
         {
-            using var input = new MemoryStream(data.ToArray());
-            using var bs = new BrotliStream(input, CompressionMode.Decompress);
-            using var ms = new MemoryStream();
-            bs.CopyTo(ms);
-            return ms.ToArray();
+            if (data == null)
+                return Result<byte[]>.Failure("Data is null.");
+
+            try
+            {
+                // no extra ToArray() – MemoryStream can take the byte[] directly
+                using var input = new MemoryStream(data, writable: false);
+                using var bs = new BrotliStream(input, CompressionMode.Decompress);
+                using var ms = new MemoryStream();
+                bs.CopyTo(ms);
+                return Result<byte[]>.Success(ms.ToArray());
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure(ex.Message);
+            }
         }
     }
 }

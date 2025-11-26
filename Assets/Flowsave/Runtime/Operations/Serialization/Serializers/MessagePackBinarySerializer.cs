@@ -1,6 +1,7 @@
 ﻿#if FLOWSAVE_MESSAGEPACK
 
 using MessagePack;
+using System;
 
 namespace Flowsave.Serialization
 {
@@ -11,14 +12,28 @@ namespace Flowsave.Serialization
     {
         public SerializationType Format { get; } = SerializationType.Binary_MessagePack;
 
-        public byte[] Serialize<T>(T data)
+        public Result<byte[]> Serialize<T>(T data)
         {
-            return MessagePackSerializer.Serialize(data);
+            try
+            {
+                return Result<byte[]>.Success(MessagePackSerializer.Serialize(data));
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure($"MessagePack serialize failed: {ex.Message}");
+            }
         }
 
-        public T Deserialize<T>(byte[] data)
+        public Result<T> Deserialize<T>(byte[] data)
         {
-            return MessagePackSerializer.Deserialize<T>(data);
+            try
+            {
+                return Result<T>.Success(MessagePackSerializer.Deserialize<T>(data));
+            }
+            catch (Exception ex)
+            {
+                return Result<T>.Failure($"MessagePack deserialize failed: {ex.Message}");
+            }
         }
     }
 }

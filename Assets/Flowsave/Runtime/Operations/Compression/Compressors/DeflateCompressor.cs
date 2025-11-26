@@ -13,24 +13,41 @@ namespace Flowsave.Compression
         public bool IsNoOp => false;
 
 
-        public byte[] Compress(ReadOnlySpan<byte> data)
+        public Result<byte[]> Compress(byte[] data)
         {
-            using var ms = new MemoryStream();
-            using (var ds = new DeflateStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+            if (data == null) return Result<byte[]>.Failure("Data is null.");
+
+            try
             {
-                ds.Write(data.ToArray(), 0, data.Length);
+                using var ms = new MemoryStream();
+                using (var ds = new DeflateStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+                {
+                    ds.Write(data, 0, data.Length);
+                }
+                return Result<byte[]>.Success(ms.ToArray());
             }
-            return ms.ToArray();
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure(ex.Message);
+            }
         }
 
-
-        public byte[] Decompress(ReadOnlySpan<byte> data)
+        public Result<byte[]> Decompress(byte[] data)
         {
-            using var input = new MemoryStream(data.ToArray());
-            using var ds = new DeflateStream(input, CompressionMode.Decompress);
-            using var ms = new MemoryStream();
-            ds.CopyTo(ms);
-            return ms.ToArray();
+            if (data == null) return Result<byte[]>.Failure("Data is null.");
+
+            try
+            {
+                using var input = new MemoryStream(data);
+                using var ds = new DeflateStream(input, CompressionMode.Decompress);
+                using var ms = new MemoryStream();
+                ds.CopyTo(ms);
+                return Result<byte[]>.Success(ms.ToArray());
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure(ex.Message);
+            }
         }
     }
 }

@@ -8,10 +8,9 @@ namespace Flowsave.Operations
     public enum OperationMode : byte
     {
         None = 0,
-        Compression,
-        Sign,
-        Checksum,
-        Encrypt,
-        ObfuscateName,
+        Compression = 1,
+        Encrypt = 2,
+        Sign = 3,
+        Checksum = 4,
     }
 }

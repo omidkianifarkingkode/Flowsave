@@ -2,7 +2,7 @@
 
 using UnityEditor;
 using UnityEngine;
-using Flowsave.Namespaces;
+using Flowsave.Configurations;
 using Flowsave.Compression;
 using Flowsave.Operations;
 using Flowsave.Operations.Options;

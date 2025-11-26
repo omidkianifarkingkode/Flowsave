@@ -2,7 +2,7 @@
 using Newtonsoft.Json.Converters;
 using System;
 
-namespace Flowsave.Namespaces
+namespace Flowsave.Configurations
 {
     [Flags]
     [JsonConverter(typeof(StringEnumConverter))]
