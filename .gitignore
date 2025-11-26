@@ -98,3 +98,12 @@ InitTestScene*.unity*
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 .vsconfig
+Assets/Packages
+Assets/FlowSaveConfig
+Assets/FlowSaveConfig/FlowSaveConfiguration.asset
+Assets/FlowSaveConfig/FlowSaveConfiguration.asset.meta
+Assets/NuGet.config
+Assets/NuGet.config.meta
+Assets/packages.config
+Assets/packages.config.meta
+Assets/Packages.meta
