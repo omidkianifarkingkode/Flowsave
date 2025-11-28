@@ -54,7 +54,7 @@ namespace Flowsave.Unity
 #endif
 
             // Create the FlowSave service
-            Service = new FlowSaveService(configuration);
+            Service = new FlowSave(configuration);
             _initialized = true;
 
             // Keep this across scene loads

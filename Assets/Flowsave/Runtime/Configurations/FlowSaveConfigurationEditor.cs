@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Flowsave.Configurations
 {
-    [CreateAssetMenu(fileName = "FlowSaveConfiguration", menuName = "FlowSave/Config Repository", order = 2)]
+    [CreateAssetMenu(fileName = nameof(FlowSaveConfiguration), menuName = "FlowSave/Config Repository", order = 2)]
     public partial class FlowSaveConfiguration
     {
         [ContextMenu("Print")]
