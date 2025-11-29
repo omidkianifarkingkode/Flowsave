@@ -12,26 +12,61 @@ namespace Flowsave.Operations
         [Tooltip("AES key size. Only 128 or 256 are valid.")]
         public KeyBits KeyBits = KeyBits._128;
 
+        [Tooltip("If true, the runtime AES key is derived per user/device from the base key.")]
+        public bool DeriveKey = false;
 
         [Tooltip("Base64 of raw AES key bytes. TEST ONLY – do not ship real keys.")]
         public string KeyB64 = string.Empty;
 
+        /// <summary>
+        /// Base key as stored in config (no per-user derivation).
+        /// </summary>
+        public byte[] BaseKey
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(KeyB64))
+                    return Array.Empty<byte>();
 
-        [Tooltip("Nonce strategy for AES-GCM. Random is recommended.")]
-        public NonceStrategy Nonce = NonceStrategy.Random;
+                try
+                {
+                    return Convert.FromBase64String(KeyB64);
+                }
+                catch (FormatException)
+                {
+                    Debug.LogWarning("[AesOptions] KeyB64 is not valid Base64.");
+                    return Array.Empty<byte>();
+                }
+            }
+        }
 
-
-        [Tooltip("GCM tag length in bytes. 16 (128-bit) is recommended.")]
-        public TagBytes TagBytes = TagBytes._16;
-
+        /// <summary>
+        /// Runtime key to actually use.
+        /// - If DerivePerUserKey is false or KeyResolver is null: returns BaseKey.
+        /// - Otherwise: returns KeyResolver(BaseKey, KeyBits).
+        /// </summary>
         public byte[] Key
         {
             get
             {
-                if (string.IsNullOrEmpty(KeyB64)) return Array.Empty<byte>();
-                return Convert.FromBase64String(KeyB64);
+                var baseKey = BaseKey;
+                if (baseKey.Length == 0)
+                    return baseKey;
+
+                if (!DeriveKey)
+                    return baseKey;
+
+                var resolved = KeyResolver.DeriveAesKey(baseKey, KeyBits);
+                if (resolved == null || resolved.Length == 0)
+                {
+                    Debug.LogWarning("[AesOptions] KeyResolver returned null/empty key, falling back to BaseKey.");
+                    return baseKey;
+                }
+
+                return resolved;
             }
         }
+
 
         public void Validate()
         {
@@ -43,9 +78,8 @@ namespace Flowsave.Operations
             from == null ? null : new AesOptions
             {
                 KeyBits = from.KeyBits,
-                KeyB64 = from.KeyB64,
-                Nonce = from.Nonce,
-                TagBytes = from.TagBytes
+                DeriveKey = from.DeriveKey,
+                KeyB64 = from.KeyB64
             };
 
     }

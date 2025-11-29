@@ -1,4 +1,3 @@
-using Flowsave;
 using Flowsave.Configurations;
 using UnityEngine;
 
@@ -52,6 +51,8 @@ namespace Flowsave.Unity
                 FlowSaveConfiguration.ModeResolver = () => editorModeOverride;
             }
 #endif
+
+            KeyResolver.Initialize(SystemInfo.deviceUniqueIdentifier);
 
             // Create the FlowSave service
             Service = new FlowSave(configuration);

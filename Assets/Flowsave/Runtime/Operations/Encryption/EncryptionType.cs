@@ -7,7 +7,7 @@ namespace Flowsave.Operations
     public enum EncryptionType : byte
     {
         None = 0,
-        Aes128Gcm = 1,
-        Aes256Gcm = 2
+        Aes128Cbc = 1,
+        Aes256Cbc = 2
     }
 }

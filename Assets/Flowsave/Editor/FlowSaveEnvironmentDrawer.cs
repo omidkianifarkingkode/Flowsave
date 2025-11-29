@@ -339,13 +339,14 @@ public partial class FlowSaveConfigWindow
             {
                 var element = operationsProp.GetArrayElementAtIndex(i);
                 if (element.propertyType == SerializedPropertyType.Enum &&
-                    element.enumValueIndex == (int)mode)
+                    element.enumDisplayNames[element.enumValueIndex] == mode.ToString())
                 {
                     operationsProp.DeleteArrayElementAtIndex(i);
                     break;
                 }
             }
         }
+
 
 
         public static void SetUseDefaultFlag(SerializedProperty envProp, string optionsName, string useDefaultName, bool value)
@@ -625,12 +626,12 @@ public partial class FlowSaveConfigWindow
             EditorGUI.indentLevel++;
             switch (selected)
             {
-                case EncryptionType.Aes128Gcm:
+                case EncryptionType.Aes128Cbc:
                     if (aes128Prop != null)
                         EditorGUILayout.PropertyField(aes128Prop, true);
                     break;
 
-                case EncryptionType.Aes256Gcm:
+                case EncryptionType.Aes256Cbc:
                     if (aes256Prop != null)
                         EditorGUILayout.PropertyField(aes256Prop, true);
                     break;
