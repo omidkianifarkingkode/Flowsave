@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using CompressionType = Flowsave.Compression.CompressionType;
 
 public class FlowSaveUnityTests
 {
@@ -140,7 +141,7 @@ public class FlowSaveUnityTests
     [Test]
     public async void SaveAndLoad_WithCompression_Works()
     {
-        var env = CreateOperationsEnvironment(OperationMode.Compression, opts =>
+        var env = CreateOperationsEnvironment(OperationMode.Compression, static opts =>
         {
             opts.CompressionOptions.UseDefault = false;
             opts.CompressionOptions.CompressionType = CompressionType.Deflate;
@@ -269,7 +270,7 @@ public class FlowSaveUnityTests
                 StorageType = storageType,
                 DiskStorage = new DiskStorageOptions
                 {
-                    PathRoot = StoragePathRoot.TemporaryCachePath,
+                    PathRoot = StoragePathRoot.ProjectRoot,
                     PathTemplate = "flowsave-tests/{NAMESPACE}.bin",
                     KeepBackup = false,
                     MaxBackup = 1
