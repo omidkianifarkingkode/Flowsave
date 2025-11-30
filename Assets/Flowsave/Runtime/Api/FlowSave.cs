@@ -1,11 +1,12 @@
 using FlowSave.Configurations;
 using FlowSave.Logging;
+using System;
 using UnityEngine;
 
 namespace FlowSave
 {
     /// <summary>
-    /// Bootstraps FlowSave and exposes a global IFlowSaveService instance.
+    /// Bootstraps FlowSave and exposes a global IFlowSave instance.
     /// Drop this on a GameObject in your first scene (or a dedicated bootstrap scene).
     /// </summary>
     public sealed class FlowSave : MonoBehaviour
@@ -14,9 +15,6 @@ namespace FlowSave
 
         [Header("Config Repository")]
         [SerializeField] private FlowSaveConfiguration configuration;
-
-        [Header("Logging")]
-        [SerializeReference] private ILogger logger;
 
         [Header("Environment")]
         [SerializeField] private bool overrideEditorMode;
@@ -27,16 +25,16 @@ namespace FlowSave
         /// </summary>
         public static IFlowSave Instance { get; private set; }
 
-        public ILogger Logger
-        {
-            get => logger;
-            set => logger = value;
-        }
-
         /// <summary>
         /// True if FlowSave has been initialized successfully.
         /// </summary>
         public static bool IsInitialized => Instance != null && _initialized;
+
+        /// <summary>
+        /// Optional global logger resolver. Use this when you need to create a logger
+        /// with custom constructor parameters or from a DI container.
+        /// </summary>
+        public static Func<FlowSaveConfiguration, ILogger> GlobalLoggerResolver { get; set; }
 
         private void Awake()
         {
@@ -63,15 +61,41 @@ namespace FlowSave
 #endif
 
             KeyResolver.Initialize(SystemInfo.deviceUniqueIdentifier);
+            SetupLogger(configuration);
 
             // Create the FlowSave service
-            Instance = new FlowSaveService(configuration, logger);
+            Instance = new FlowSaveService(configuration);
             _initialized = true;
 
             // Keep this across scene loads
             DontDestroyOnLoad(gameObject);
 
             FlowSaveLog.Info("[FlowSaveBootstrapper] FlowSave initialized.");
+        }
+
+        private void SetupLogger(FlowSaveConfiguration config)
+        {
+            ILogger logger;
+
+            // 1) If someone registered a global resolver, ask it
+            if (GlobalLoggerResolver != null)
+            {
+                try
+                {
+                    var fromResolver = GlobalLoggerResolver(config);
+                    if (fromResolver != null)
+                        logger = fromResolver;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[FlowSaveBootstrapper] GlobalLoggerResolver threw: {ex}");
+                }
+            }
+
+            // 3) Fallback – create default UnityLogger
+            logger = new UnityLogger(config.LoggingOptions);
+
+            FlowSaveLog.SetLogger(logger);
         }
     }
 }

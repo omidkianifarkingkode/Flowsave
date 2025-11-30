@@ -320,7 +320,8 @@ namespace FlowSave.Tests
                 }
             };
 
-            return new FlowSaveService(config, null);
+            FlowSaveLog.SetLogger(new UnityLogger(config.LoggingOptions));
+            return new FlowSaveService(config);
         }
 
         private EnvironmentConfiguration CreateOperationsEnvironment(OperationMode mode, Action<EnvironmentConfiguration> configure)

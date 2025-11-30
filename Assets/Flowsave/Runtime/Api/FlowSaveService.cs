@@ -16,14 +16,12 @@ namespace FlowSave
 
         private readonly FlowSaveConfiguration _config;
 
-        public FlowSaveService(FlowSaveConfiguration config = default, ILogger logger = null)
+        public FlowSaveService(FlowSaveConfiguration config = default)
         {
             if (config == null)
                 config = Resources.Load<FlowSaveConfiguration>(nameof(FlowSaveConfiguration));
 
             _config = config != null ? config : throw new ArgumentNullException(nameof(config));
-
-            FlowSaveLog.Configure(_config.LoggingOptions, logger);
 
             Instance = this;
         }

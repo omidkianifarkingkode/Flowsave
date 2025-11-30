@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace FlowSave.Logging
 {
     public static class FlowSaveLog
@@ -14,18 +16,9 @@ namespace FlowSave.Logging
 
         public static LoggingOptions Options => LoggingOptions.Clone(_options);
 
-        public static void Configure(LoggingOptions options, ILogger logger = null)
+        public static void SetLogger(ILogger logger)
         {
-            _options = LoggingOptions.Clone(options);
-            DefaultLogger.SetOptions(_options);
-
-            if (logger != null)
-                _logger = logger;
-            else if (_logger == null)
-                _logger = DefaultLogger;
-
-            if (_logger is UnityLogger unityLogger)
-                unityLogger.SetOptions(_options);
+            _logger = logger ?? DefaultLogger;
         }
 
         public static void Log(string message, LogLevel level = LogLevel.Info) =>

@@ -2,6 +2,7 @@
 
 using FlowSave;           
 using FlowSave.Encryption;
+using FlowSave.Logging;
 using System;
 using System.Security.Cryptography;
 using UnityEditor;
