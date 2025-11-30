@@ -136,7 +136,8 @@ namespace FlowSave.Editor
                             showAddButton: false,
                             compactOptions: true,
                             allowDelete: true,
-                            allowAppModeEdit: true);
+                            allowAppModeEdit: true,
+                            showKeyStore: false);
 
                         // 2) AppMode + Add Override row (per namespace)
                         EditorGUILayout.BeginHorizontal();

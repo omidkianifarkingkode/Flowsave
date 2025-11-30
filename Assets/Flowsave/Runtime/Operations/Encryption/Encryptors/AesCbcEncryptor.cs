@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FlowSave.KeyStorage;
+using System;
 using System.Security.Cryptography;
 
 namespace FlowSave.Encryption
@@ -22,9 +23,9 @@ namespace FlowSave.Encryption
             Alg = key.Length == 32 ? EncryptionType.Aes256Cbc : EncryptionType.Aes128Cbc;
         }
 
-        public AesCbcEncryptor(AesOptions opts) : this(opts.Key)
-        {
-        }
+        public AesCbcEncryptor(KeyDefinition def) : this(KeyRuntime.ResolveAesKey(def)) { }
+
+        public AesCbcEncryptor(AesOptions opts) : this(opts.Key) { }
 
         // ============================================================
 

@@ -1,12 +1,12 @@
 ﻿#if FLOWSAVE_LZ4
 
 using System;
-using FlowSave.Compression;
+using LZ4;
 
-namespace Flowsave.Compression
+namespace FlowSave.Compression
 {
     /// <summary>
-    /// LZ4 compressor wrapper. Requires K4os.Compression.LZ4 if you want to use it.
+    /// LZ4 compressor wrapper. Requires lz4net (LZ4.LZ4Codec) if you want to use it.
     /// Define FLOWSAVE_LZ4 and add the package to enable.
     /// </summary>
     public sealed class Lz4Compressor : ICompressor
@@ -21,8 +21,8 @@ namespace Flowsave.Compression
 
             try
             {
-                // K4os API already takes byte[]
-                var compressed = K4os.Compression.LZ4.LZ4Pickler.Pickle(data);
+                // Wrap adds a small header with original length etc.,
+                var compressed = LZ4Codec.Wrap(data);
                 return Result<byte[]>.Success(compressed);
             }
             catch (Exception ex)
@@ -38,7 +38,8 @@ namespace Flowsave.Compression
 
             try
             {
-                var decompressed = K4os.Compression.LZ4.LZ4Pickler.Unpickle(data);
+                // UnWrap uses the header produced by Wrap and restores original bytes.
+                var decompressed = LZ4Codec.Unwrap(data);
                 return Result<byte[]>.Success(decompressed);
             }
             catch (Exception ex)

@@ -1,11 +1,12 @@
 using FlowSave.Compression;
 using FlowSave.Configurations;
 using FlowSave.Encryption;
+using FlowSave.KeyStorage;
+using FlowSave.Logging;
 using FlowSave.Operations;
 using FlowSave.Serialization;
 using FlowSave.Signing;
 using FlowSave.Storage;
-using FlowSave.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -168,12 +169,7 @@ namespace FlowSave.Tests
             {
                 opts.EncryptionOptions.UseDefault = false;
                 opts.EncryptionOptions.EncryptionType = EncryptionType.Aes256Cbc;
-                opts.EncryptionOptions.Aes256 = new AesOptions
-                {
-                    KeyBits = KeyBits._256,
-                    DeriveKey = false,
-                    KeyB64 = Convert.ToBase64String(EncryptionKey)
-                };
+                opts.EncryptionOptions.Aes256KeyId = "aes-256";
             });
 
             var flow = CreateFlowSave(env, "encryption.ns");
@@ -188,6 +184,7 @@ namespace FlowSave.Tests
             Assert.AreEqual(data.name, load.Value.name);
         }
 
+
         [Test]
         public async void SaveAndLoad_WithSigning_Works()
         {
@@ -195,13 +192,7 @@ namespace FlowSave.Tests
             {
                 opts.SigningOptions.UseDefault = false;
                 opts.SigningOptions.SigningType = SigningType.Hmac;
-                opts.SigningOptions.Hmac = new HmacOptions
-                {
-                    DeriveKey = false,
-                    KeyB64 = Convert.ToBase64String(SigningKey),
-                    KeyId = "tests",
-                    TruncateTo = HmacTruncate._32
-                };
+                opts.SigningOptions.HmacKeyId = "tests";
             });
 
             var flow = CreateFlowSave(env, "signing.ns");
@@ -216,38 +207,28 @@ namespace FlowSave.Tests
             Assert.AreEqual(data.name, load.Value.name);
         }
 
+
         [Test]
         public async void SaveAndLoad_WithAllOperations_Works()
         {
             var env = CreateOperationsEnvironment(new[]
             {
-            OperationMode.Compression,
-            OperationMode.Encrypt,
-            OperationMode.Sign
-        }, opts =>
-        {
-            opts.CompressionOptions.UseDefault = false;
-            opts.CompressionOptions.CompressionType = CompressionType.Deflate;
-
-            opts.EncryptionOptions.UseDefault = false;
-            opts.EncryptionOptions.EncryptionType = EncryptionType.Aes128Cbc;
-            opts.EncryptionOptions.Aes128 = new AesOptions
+                OperationMode.Compression,
+                OperationMode.Encrypt,
+                OperationMode.Sign
+            }, opts =>
             {
-                KeyBits = KeyBits._128,
-                DeriveKey = false,
-                KeyB64 = Convert.ToBase64String(EncryptionKey.Take(16).ToArray())
-            };
+                opts.CompressionOptions.UseDefault = false;
+                opts.CompressionOptions.CompressionType = CompressionType.Deflate;
 
-            opts.SigningOptions.UseDefault = false;
-            opts.SigningOptions.SigningType = SigningType.Hmac;
-            opts.SigningOptions.Hmac = new HmacOptions
-            {
-                DeriveKey = false,
-                KeyB64 = Convert.ToBase64String(SigningKey),
-                KeyId = "tests-all",
-                TruncateTo = HmacTruncate._16
-            };
-        });
+                opts.EncryptionOptions.UseDefault = false;
+                opts.EncryptionOptions.EncryptionType = EncryptionType.Aes128Cbc;
+                opts.EncryptionOptions.Aes128KeyId = "aes-128";
+
+                opts.SigningOptions.UseDefault = false;
+                opts.SigningOptions.SigningType = SigningType.Hmac;
+                opts.SigningOptions.HmacKeyId = "tests-all";
+            });
 
             var flow = CreateFlowSave(env, "allops.ns");
             var data = new PlayerData { level = 25, name = "Everything" };
@@ -261,9 +242,10 @@ namespace FlowSave.Tests
             Assert.AreEqual(data.name, load.Value.name);
         }
 
+
         private static EnvironmentConfiguration CreateBaseEnvironment(StorageType storageType)
         {
-            return new EnvironmentConfiguration
+            var env = new EnvironmentConfiguration
             {
                 AppMode = AppMode.Editor,
                 StorageOptions = new StorageOptions
@@ -299,15 +281,64 @@ namespace FlowSave.Tests
                 EncryptionOptions = new EncryptionOptions
                 {
                     UseDefault = false,
-                    EncryptionType = EncryptionType.None
+                    EncryptionType = EncryptionType.None,
+                    // default key ids – we’ll define them below
+                    Aes128KeyId = "aes-128",
+                    Aes256KeyId = "aes-256"
                 },
                 SigningOptions = new SigningOptions
                 {
                     UseDefault = false,
-                    SigningType = SigningType.None
-                }
+                    SigningType = SigningType.None,
+                    // default key id
+                    HmacKeyId = "tests"
+                },
+                KeyStore = new KeyStoreOptions()
             };
+
+            // Define all keys needed by tests
+            env.KeyStore.DefaultAesKeyId = "aes-256";
+            env.KeyStore.DefaultHmacKeyId = "tests";
+
+            env.KeyStore.Keys.Add(new KeyDefinition
+            {
+                KeyId = "aes-256",
+                Kind = KeyKind.Aes,
+                KeyBits = KeyBits._256,
+                DeriveKey = false,
+                KeyB64 = Convert.ToBase64String(EncryptionKey)
+            });
+
+            env.KeyStore.Keys.Add(new KeyDefinition
+            {
+                KeyId = "aes-128",
+                Kind = KeyKind.Aes,
+                KeyBits = KeyBits._128,
+                DeriveKey = false,
+                KeyB64 = Convert.ToBase64String(EncryptionKey.Take(16).ToArray())
+            });
+
+            env.KeyStore.Keys.Add(new KeyDefinition
+            {
+                KeyId = "tests",
+                Kind = KeyKind.Hmac,
+                DeriveKey = false,
+                KeyB64 = Convert.ToBase64String(SigningKey),
+                TruncateTo = HmacTruncate._32
+            });
+
+            env.KeyStore.Keys.Add(new KeyDefinition
+            {
+                KeyId = "tests-all",
+                Kind = KeyKind.Hmac,
+                DeriveKey = false,
+                KeyB64 = Convert.ToBase64String(SigningKey),
+                TruncateTo = HmacTruncate._16
+            });
+
+            return env;
         }
+
 
         private FlowSaveService CreateFlowSave(EnvironmentConfiguration env, string namespaceId)
         {

@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace FlowSave.Logging
 {
     /// <summary>
-    /// Default FlowSave logger that wraps Unity's Debug.unityLogger and
+    /// Default FlowSave logger that wraps Unity's Debug API and
     /// adds prefix / color formatting based on LoggingOptions.
     /// </summary>
     [Serializable]
@@ -40,109 +40,107 @@ namespace FlowSave.Logging
             set => Debug.unityLogger.filterLogType = value;
         }
 
+        [HideInCallstack]
         public bool IsLogTypeAllowed(LogType logType)
         {
             return Debug.unityLogger.IsLogTypeAllowed(logType);
         }
 
+        [HideInCallstack]
         public void Log(LogType logType, object message)
         {
-            if (!IsLogTypeAllowed(logType)) return;
-            Debug.unityLogger.Log(logType, FormatMessage(message?.ToString()));
+            LogInternal(logType, null, message, null);
         }
 
+        [HideInCallstack]
         public void Log(LogType logType, object message, Object context)
         {
-            if (!IsLogTypeAllowed(logType)) return;
-
-            // Explicit cast so the compiler picks (LogType, object, Object)
-            Debug.unityLogger.Log(
-                logType,
-                (object)FormatMessage(message?.ToString()),
-                context
-            );
+            LogInternal(logType, null, message, context);
         }
 
+        [HideInCallstack]
         public void Log(LogType logType, string tag, object message)
         {
-            if (!IsLogTypeAllowed(logType)) return;
-            Debug.unityLogger.Log(logType, $"[{tag}] {FormatMessage(message?.ToString())}");
+            LogInternal(logType, tag, message, null);
         }
 
+        [HideInCallstack]
         public void Log(LogType logType, string tag, object message, Object context)
         {
-            if (!IsLogTypeAllowed(logType)) return;
-
-            // Use the (LogType, string tag, object message, Object context) overload explicitly
-            Debug.unityLogger.Log(
-                logType,
-                tag,
-                (object)FormatMessage(message?.ToString()),
-                context
-            );
+            LogInternal(logType, tag, message, context);
         }
 
+        [HideInCallstack]
         public void Log(object message)
         {
-            Debug.unityLogger.Log(FormatMessage(message?.ToString()));
+            LogInternal(LogType.Log, null, message, null);
         }
 
+        [HideInCallstack]
         public void Log(string tag, object message)
         {
-            Debug.unityLogger.Log($"[{tag}] {FormatMessage(message?.ToString())}");
+            LogInternal(LogType.Log, tag, message, null);
         }
 
+        [HideInCallstack]
         public void Log(string tag, object message, Object context)
         {
-            Debug.unityLogger.Log($"[{tag}] {FormatMessage(message?.ToString())}", context);
+            LogInternal(LogType.Log, tag, message, context);
         }
 
+        [HideInCallstack]
         public void LogWarning(string tag, object message)
         {
-            Debug.unityLogger.LogWarning(tag, FormatMessage(message?.ToString()));
+            LogInternal(LogType.Warning, tag, message, null);
         }
 
+        [HideInCallstack]
         public void LogWarning(string tag, object message, Object context)
         {
-            Debug.unityLogger.LogWarning(tag, FormatMessage(message?.ToString()), context);
+            LogInternal(LogType.Warning, tag, message, context);
         }
 
+        [HideInCallstack]
         public void LogError(string tag, object message)
         {
-            Debug.unityLogger.LogError(tag, FormatMessage(message?.ToString()));
+            LogInternal(LogType.Error, tag, message, null);
         }
 
+        [HideInCallstack]
         public void LogError(string tag, object message, Object context)
         {
-            Debug.unityLogger.LogError(tag, FormatMessage(message?.ToString()), context);
+            LogInternal(LogType.Error, tag, message, context);
         }
 
+        [HideInCallstack]
         public void LogException(Exception exception)
         {
             Debug.unityLogger.LogException(exception);
         }
 
+        [HideInCallstack]
         public void LogException(Exception exception, Object context)
         {
             Debug.unityLogger.LogException(exception, context);
         }
 
+        [HideInCallstack]
         public void LogFormat(LogType logType, string format, params object[] args)
         {
-            if (!IsLogTypeAllowed(logType)) return;
-            Debug.unityLogger.LogFormat(logType, FormatMessage(string.Format(format, args)));
+            LogInternal(logType, null, string.Format(format, args), null);
         }
 
+        [HideInCallstack]
         public void LogFormat(LogType logType, Object context, string format, params object[] args)
         {
-            if (!IsLogTypeAllowed(logType)) return;
-            Debug.unityLogger.LogFormat(logType, context, FormatMessage(string.Format(format, args)));
+            LogInternal(logType, null, string.Format(format, args), context);
         }
 
         #endregion
 
         #region High-level FlowSave logging API
 
+        [HideInCallstack]
         public void Log(string message, LogLevel level = LogLevel.Info)
         {
             if (!ShouldLog(level))
@@ -164,10 +162,67 @@ namespace FlowSave.Logging
             }
         }
 
+        #endregion
+
+        #region Internals
+
+        [HideInCallstack]
+        private void LogInternal(LogType logType, string tag, object message, Object context)
+        {
+            if (!IsLogTypeAllowed(logType))
+                return;
+
+            // Map Unity log type → FlowSave log level for filtering
+            var level = MapLogTypeToLevel(logType);
+            if (!ShouldLog(level))
+                return;
+
+            var text = message?.ToString();
+            if (!string.IsNullOrEmpty(tag))
+                text = $"[{tag}] {text}";
+
+            var formatted = FormatMessage(text);
+
+            switch (logType)
+            {
+                case LogType.Error:
+                case LogType.Assert:
+                case LogType.Exception:
+                    if (context != null) Debug.LogError(formatted, context);
+                    else Debug.LogError(formatted);
+                    break;
+
+                case LogType.Warning:
+                    if (context != null) Debug.LogWarning(formatted, context);
+                    else Debug.LogWarning(formatted);
+                    break;
+
+                default:
+                    if (context != null) Debug.Log(formatted, context);
+                    else Debug.Log(formatted);
+                    break;
+            }
+        }
+
+        private static LogLevel MapLogTypeToLevel(LogType logType)
+        {
+            switch (logType)
+            {
+                case LogType.Error:
+                case LogType.Assert:
+                case LogType.Exception:
+                    return LogLevel.Error;
+                case LogType.Warning:
+                    return LogLevel.Warning;
+                default:
+                    return LogLevel.Info;
+            }
+        }
+
         private bool ShouldLog(LogLevel level)
         {
             if (_options == null)
-                return true; // be safe: log if options somehow missing
+                return true;
 
             if (_options.MinimumLevel == LogLevel.None)
                 return false;

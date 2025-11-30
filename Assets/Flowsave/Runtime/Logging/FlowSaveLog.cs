@@ -14,19 +14,20 @@ namespace FlowSave.Logging
             set => _logger = value ?? DefaultLogger;
         }
 
-        public static LoggingOptions Options => LoggingOptions.Clone(_options);
-
         public static void SetLogger(ILogger logger)
         {
             _logger = logger ?? DefaultLogger;
         }
 
-        public static void Log(string message, LogLevel level = LogLevel.Info) =>
-            (_logger ?? DefaultLogger).Log(message, level);
-
+        [HideInCallstack]
+        public static void Log(string message, LogLevel level = LogLevel.Info) => _logger.Log(message, level);
+        [HideInCallstack]
         public static void Debug(string message) => Log(message, LogLevel.Debug);
+        [HideInCallstack]
         public static void Info(string message) => Log(message, LogLevel.Info);
+        [HideInCallstack]
         public static void Warning(string message) => Log(message, LogLevel.Warning);
+        [HideInCallstack]
         public static void Error(string message) => Log(message, LogLevel.Error);
     }
 }

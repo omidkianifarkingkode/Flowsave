@@ -7,7 +7,7 @@ namespace FlowSave.Signing
     {
         public SigningType SigningType = SigningType.None;
 
-        public HmacOptions Hmac = new();
+        public string HmacKeyId = "hmac-main";
     }
 
     [Serializable]
@@ -19,19 +19,16 @@ namespace FlowSave.Signing
             from == null ? null : new SigningOptions
             {
                 UseDefault = true,
-
                 SigningType = from.SigningType,
-                Hmac = HmacOptions.Clone(from.Hmac)
+                HmacKeyId = from.HmacKeyId
             };
-
 
         public static SigningOptions Clone(SigningOptions from) =>
             from == null ? null : new SigningOptions
             {
                 UseDefault = from.UseDefault,
                 SigningType = from.SigningType,
-                Hmac = HmacOptions.Clone(from.Hmac)
+                HmacKeyId = from.HmacKeyId
             };
-
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FlowSave.KeyStorage;
+using System;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -23,10 +24,11 @@ namespace FlowSave.Signing
             _truncateBytes = truncateBytes;
         }
 
+        public HmacSha256Signer(KeyDefinition def)
+            : this(KeyRuntime.ResolveHmacKey(def, out var id, out var trunc), id, trunc) { }
+
         public HmacSha256Signer(HmacOptions opts)
-            : this(opts.Key, opts.KeyId, opts.TruncateTo == HmacTruncate.None ? 0 : (int)opts.TruncateTo)
-        {
-        }
+            : this(opts.Key, opts.KeyId, opts.TruncateTo == HmacTruncate.None ? 0 : (int)opts.TruncateTo) { }
 
         // --------------------------------------------------------------------
         // SIGN

@@ -8,11 +8,11 @@ namespace FlowSave.Encryption
     {
         public EncryptionType EncryptionType = EncryptionType.None;
 
-        [Tooltip("AES encryption options.")]
-        public AesOptions Aes128 = new();
+        [Tooltip("Key id for AES-128 CBC in this environment.")]
+        public string Aes128KeyId = "aes-main";
 
-        [Tooltip("AES encryption options.")]
-        public AesOptions Aes256 = new();
+        [Tooltip("Key id for AES-256 CBC in this environment.")]
+        public string Aes256KeyId = "aes-main";
     }
 
     [Serializable]
@@ -24,10 +24,9 @@ namespace FlowSave.Encryption
             from == null ? null : new EncryptionOptions
             {
                 UseDefault = true,
-
                 EncryptionType = from.EncryptionType,
-                Aes128 = AesOptions.Clone(from.Aes128),
-                Aes256 = AesOptions.Clone(from.Aes256)
+                Aes128KeyId = from.Aes128KeyId,
+                Aes256KeyId = from.Aes256KeyId
             };
 
         public static EncryptionOptions Clone(EncryptionOptions from) =>
@@ -35,9 +34,8 @@ namespace FlowSave.Encryption
             {
                 UseDefault = from.UseDefault,
                 EncryptionType = from.EncryptionType,
-                Aes128 = AesOptions.Clone(from.Aes128),
-                Aes256 = AesOptions.Clone(from.Aes256)
+                Aes128KeyId = from.Aes128KeyId,
+                Aes256KeyId = from.Aes256KeyId
             };
-
     }
 }

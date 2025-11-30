@@ -189,7 +189,7 @@ namespace FlowSave.Operations.Builder
             IEncryptor encryptor;
             if (encryptionEnabled)
             {
-                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions);
+                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions, env.KeyStore);
                 encryptor = encryptorFactory.CreateEncryptor(env.EncryptionOptions.EncryptionType);
             }
             else
@@ -211,7 +211,7 @@ namespace FlowSave.Operations.Builder
             ISigner signer;
             if (signingEnabled)
             {
-                var signerFactory = new SignerFactory(env.SigningOptions);
+                var signerFactory = new SignerFactory(env.SigningOptions, env.KeyStore);
                 signer = signerFactory.CreateSigner(env.SigningOptions.SigningType);
             }
             else
@@ -248,7 +248,7 @@ namespace FlowSave.Operations.Builder
             ISigner signer;
             if (signingEnabled)
             {
-                var signerFactory = new SignerFactory(env.SigningOptions);
+                var signerFactory = new SignerFactory(env.SigningOptions, env.KeyStore);
                 signer = signerFactory.CreateSigner(env.SigningOptions.SigningType);
             }
             else
@@ -269,7 +269,7 @@ namespace FlowSave.Operations.Builder
             IEncryptor encryptor;
             if (encryptionEnabled)
             {
-                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions);
+                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions, env.KeyStore);
                 encryptor = encryptorFactory.CreateEncryptor(env.EncryptionOptions.EncryptionType);
             }
             else

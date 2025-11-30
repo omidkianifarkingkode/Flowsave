@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using FlowSave.Runtime.Operations.Storage;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -183,7 +182,7 @@ namespace FlowSave.Storage
 
                 var len = fs.Length;
                 if (len > int.MaxValue)
-                    return StorageErrors.FileTooLarge(bytes.Length);
+                    return StorageErrors.FileTooLarge(len);
 
                 var buffer = new byte[len];
 
@@ -200,7 +199,7 @@ namespace FlowSave.Storage
             catch (Exception ex)
             {
                 return StorageErrors.LoadFailed(ex.Message, StorageErrors.DiskModule);
-        }
+            }
         }
 
         // ============================================================
@@ -247,13 +246,13 @@ namespace FlowSave.Storage
             try
             {
                 var path = GetPath(key);
-            return Result<bool>.Success(File.Exists(path)).ToTask();
+                return Result<bool>.Success(File.Exists(path)).ToTask();
+            }
+            catch (Exception ex)
+            {
+                return StorageErrors.ExistsFailed(ex.Message, StorageErrors.DiskModule).ToTask();
+            }
         }
-        catch (Exception ex)
-        {
-            return StorageErrors.ExistsFailed(ex.Message, StorageErrors.DiskModule).ToTask();
-        }
-    }
 
         // ============================================================
         // PATH + SANITIZATION

@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 
-namespace FlowSave
+namespace FlowSave.KeyStorage
 {
     /// <summary>
     /// Holds runtime identity (user / device) and resolves per-user keys

@@ -29,7 +29,8 @@ namespace FlowSave.Editor
                 bool showAddButton = true,
                 bool compactOptions = false,
                 bool allowDelete = true,
-                bool allowAppModeEdit = true)
+                bool allowAppModeEdit = true,
+                bool showKeyStore = true)
             {
                 if (envsProp == null)
                 {
@@ -90,6 +91,17 @@ namespace FlowSave.Editor
                                 }
                             }
                         }
+
+                        if (showKeyStore)
+                        {
+                            var keyStoreProp = envProp.FindPropertyRelative(nameof(EnvironmentConfiguration.KeyStore));
+                            if (keyStoreProp != null)
+                            {
+                                FlowSaveKeyStoreDrawer.DrawKeyStore(keyStoreProp);
+                            }
+                        }
+
+                        EditorGUILayout.Space();
 
                         EditorGUILayout.PropertyField(
                             envProp.FindPropertyRelative(nameof(EnvironmentConfiguration.SchemaVersion)));
@@ -167,9 +179,7 @@ namespace FlowSave.Editor
                                 compactOptions
                             );
                         }
-
                     }
-
 
                     EditorGUILayout.EndVertical();
                     EditorGUILayout.Space();
@@ -206,6 +216,10 @@ namespace FlowSave.Editor
                 }
             }
 
+            // ─────────────────────────────────────────────────────────
+            // Operation section / helpers (unchanged)
+            // ─────────────────────────────────────────────────────────
+
             private static void DrawOperationSection(
                 string opLabel,
                 OperationMode mode,
@@ -219,7 +233,6 @@ namespace FlowSave.Editor
                 if (operationsListProp == null || optionsProp == null)
                     return;
 
-                // Is this operation currently used (present in list)?
                 bool isUsed = HasOperation(operationsListProp, mode);
 
                 var useDefaultProp = optionsProp.FindPropertyRelative(useDefaultPropertyName);
@@ -228,15 +241,10 @@ namespace FlowSave.Editor
 
                 EditorGUILayout.BeginVertical("box");
 
-                // ─────────────────────────────────────
-                // Header row: "Use X" + optional "Overwrite"
-                // ─────────────────────────────────────
                 EditorGUILayout.BeginHorizontal();
 
-                // "Use" checkbox: controls whether this op is added to the list
                 bool newIsUsed = EditorGUILayout.ToggleLeft($"Use {opLabel}", isUsed, GUILayout.Width(140f));
 
-                // Only show "Overwrite" checkbox if operation is enabled
                 if (newIsUsed)
                 {
                     overrideEnabled = EditorGUILayout.ToggleLeft($"Overwrite {opLabel} Options", overrideEnabled);
@@ -244,9 +252,6 @@ namespace FlowSave.Editor
 
                 EditorGUILayout.EndHorizontal();
 
-                // ─────────────────────────────────────
-                // Update operations list if "Use" changed
-                // ─────────────────────────────────────
                 if (newIsUsed != isUsed)
                 {
                     if (newIsUsed)
@@ -257,21 +262,15 @@ namespace FlowSave.Editor
                     isUsed = newIsUsed;
                 }
 
-                // If operation is not used, force options to "use default" and bail out
                 if (!isUsed)
                 {
                     if (useDefaultProp != null)
-                        useDefaultProp.boolValue = true; // always fall back to defaults when disabled
+                        useDefaultProp.boolValue = true;
 
                     EditorGUILayout.EndVertical();
                     return;
                 }
 
-                // ─────────────────────────────────────
-                // Operation is used: manage override state
-                // ─────────────────────────────────────
-
-                // When first enabling "override", copy defaults into the local options
                 if (!prevOverrideEnabled && overrideEnabled && defaultOptionsProp != null)
                 {
                     CopyOptionsFromDefaults(defaultOptionsProp, optionsProp);
@@ -280,7 +279,6 @@ namespace FlowSave.Editor
                 if (useDefaultProp != null)
                     useDefaultProp.boolValue = !overrideEnabled;
 
-                // Only show options UI if operation is used AND overridden
                 if (overrideEnabled && innerContentDrawer != null)
                 {
                     EditorGUI.indentLevel++;
@@ -290,7 +288,6 @@ namespace FlowSave.Editor
 
                 EditorGUILayout.EndVertical();
             }
-
 
             private static bool HasOperation(SerializedProperty operationsProp, OperationMode mode)
             {
@@ -314,7 +311,6 @@ namespace FlowSave.Editor
                 if (operationsProp == null)
                     return;
 
-                // avoid duplicates
                 if (HasOperation(operationsProp, mode))
                     return;
 
@@ -322,7 +318,6 @@ namespace FlowSave.Editor
                 operationsProp.InsertArrayElementAtIndex(index);
                 var newElement = operationsProp.GetArrayElementAtIndex(index);
 
-                // set by name
                 for (int i = 0; i < newElement.enumDisplayNames.Length; i++)
                 {
                     if (newElement.enumDisplayNames[i] == mode.ToString())
@@ -350,8 +345,6 @@ namespace FlowSave.Editor
                 }
             }
 
-
-
             public static void SetUseDefaultFlag(SerializedProperty envProp, string optionsName, string useDefaultName, bool value)
             {
                 var opt = envProp.FindPropertyRelative(optionsName);
@@ -361,6 +354,10 @@ namespace FlowSave.Editor
                 if (useDefaultProp != null)
                     useDefaultProp.boolValue = value;
             }
+
+            // ─────────────────────────────────────────────────────────
+            // Generic override section / copy helpers (unchanged)
+            // ─────────────────────────────────────────────────────────
 
             private static void DrawOverrideSection(
                 string label,
@@ -389,7 +386,6 @@ namespace FlowSave.Editor
                 EditorGUILayout.BeginVertical("box");
                 overrideEnabled = EditorGUILayout.ToggleLeft($"Overwrite {label}", overrideEnabled, EditorStyles.boldLabel);
 
-                // Transition from "using default" -> "overriding": copy from default options
                 if (!prevOverrideEnabled && overrideEnabled && defaultOptionsProp != null)
                 {
                     CopyOptionsFromDefaults(defaultOptionsProp, optionsProp);
@@ -495,6 +491,10 @@ namespace FlowSave.Editor
                 }
             }
 
+            // ─────────────────────────────────────────────────────────
+            // Storage / Compression / Serialization content (unchanged)
+            // ─────────────────────────────────────────────────────────
+
             private static void DrawStorageOptionsContent(SerializedProperty storageProp, bool compactMode)
             {
                 if (storageProp == null) return;
@@ -510,10 +510,8 @@ namespace FlowSave.Editor
                 EditorGUILayout.Space(2f);
                 obfProp.boolValue = EditorGUILayout.ToggleLeft("Obfuscate File Name", obfProp.boolValue);
 
-                // Always show the type
                 EditorGUILayout.PropertyField(storageTypeProp);
 
-                // In default/environments: show everything exactly as before
                 if (!compactMode)
                 {
                     EditorGUILayout.PropertyField(storageProp.FindPropertyRelative(nameof(StorageOptions.DiskStorage)), true);
@@ -521,7 +519,6 @@ namespace FlowSave.Editor
                     return;
                 }
 
-                // Compact behavior (namespace overrides only)
                 if (storageTypeProp.hasMultipleDifferentValues)
                     return;
 
@@ -533,7 +530,7 @@ namespace FlowSave.Editor
                 EditorGUI.indentLevel++;
                 switch (selected)
                 {
-                    case StorageType.FileSystem:     // adjust enum names if different
+                    case StorageType.FileSystem:
                         if (diskProp != null)
                             EditorGUILayout.PropertyField(diskProp, true);
                         break;
@@ -541,10 +538,6 @@ namespace FlowSave.Editor
                     case StorageType.PlayerPrefs:
                         if (prefsProp != null)
                             EditorGUILayout.PropertyField(prefsProp, true);
-                        break;
-
-                    default:
-                        // For other storage types you may add extra blocks later
                         break;
                 }
                 EditorGUI.indentLevel--;
@@ -570,7 +563,6 @@ namespace FlowSave.Editor
 
                 EditorGUILayout.PropertyField(typeProp);
 
-                // In default/environments: old behavior (always show Json block)
                 if (!compactMode)
                 {
                     EditorGUILayout.PropertyField(serProp.FindPropertyRelative(nameof(SerializationOptions.Json)), true);
@@ -590,13 +582,13 @@ namespace FlowSave.Editor
                         if (jsonProp != null)
                             EditorGUILayout.PropertyField(jsonProp, true);
                         break;
-
-                    default:
-                        // Other formats (e.g. Binary, MessagePack) use no extra block here
-                        break;
                 }
                 EditorGUI.indentLevel--;
             }
+
+            // ─────────────────────────────────────────────────────────
+            // UPDATED: Encryption options (key ids instead of AesOptions)
+            // ─────────────────────────────────────────────────────────
 
             private static void DrawEncryptionOptionsContent(SerializedProperty encProp, bool compactMode)
             {
@@ -611,18 +603,23 @@ namespace FlowSave.Editor
 
                 EditorGUILayout.PropertyField(typeProp);
 
+                var aes128KeyIdProp = encProp.FindPropertyRelative(nameof(EncryptionOptions.Aes128KeyId));
+                var aes256KeyIdProp = encProp.FindPropertyRelative(nameof(EncryptionOptions.Aes256KeyId));
+
                 if (!compactMode)
                 {
-                    EditorGUILayout.PropertyField(encProp.FindPropertyRelative(nameof(EncryptionOptions.Aes128)), true);
-                    EditorGUILayout.PropertyField(encProp.FindPropertyRelative(nameof(EncryptionOptions.Aes256)), true);
+                    // Show both key ids explicitly
+                    if (aes128KeyIdProp != null)
+                        EditorGUILayout.PropertyField(aes128KeyIdProp, new GUIContent("AES-128 Key Id"));
+
+                    if (aes256KeyIdProp != null)
+                        EditorGUILayout.PropertyField(aes256KeyIdProp, new GUIContent("AES-256 Key Id"));
+
                     return;
                 }
 
                 if (typeProp.hasMultipleDifferentValues)
                     return;
-
-                var aes128Prop = encProp.FindPropertyRelative(nameof(EncryptionOptions.Aes128));
-                var aes256Prop = encProp.FindPropertyRelative(nameof(EncryptionOptions.Aes256));
 
                 var selected = (EncryptionType)typeProp.enumValueIndex;
 
@@ -630,13 +627,13 @@ namespace FlowSave.Editor
                 switch (selected)
                 {
                     case EncryptionType.Aes128Cbc:
-                        if (aes128Prop != null)
-                            EditorGUILayout.PropertyField(aes128Prop, true);
+                        if (aes128KeyIdProp != null)
+                            EditorGUILayout.PropertyField(aes128KeyIdProp, new GUIContent("Key Id"));
                         break;
 
                     case EncryptionType.Aes256Cbc:
-                        if (aes256Prop != null)
-                            EditorGUILayout.PropertyField(aes256Prop, true);
+                        if (aes256KeyIdProp != null)
+                            EditorGUILayout.PropertyField(aes256KeyIdProp, new GUIContent("Key Id"));
                         break;
 
                     default:
@@ -644,6 +641,10 @@ namespace FlowSave.Editor
                 }
                 EditorGUI.indentLevel--;
             }
+
+            // ─────────────────────────────────────────────────────────
+            // UPDATED: Signing options (key id instead of HmacOptions)
+            // ─────────────────────────────────────────────────────────
 
             private static void DrawSigningOptionsContent(SerializedProperty signProp, bool compactMode)
             {
@@ -658,24 +659,26 @@ namespace FlowSave.Editor
 
                 EditorGUILayout.PropertyField(typeProp);
 
+                var hmacKeyIdProp = signProp.FindPropertyRelative(nameof(SigningOptions.HmacKeyId));
+
                 if (!compactMode)
                 {
-                    EditorGUILayout.PropertyField(signProp.FindPropertyRelative(nameof(SigningOptions.Hmac)), true);
+                    if (hmacKeyIdProp != null)
+                        EditorGUILayout.PropertyField(hmacKeyIdProp, new GUIContent("HMAC Key Id"));
                     return;
                 }
 
                 if (typeProp.hasMultipleDifferentValues)
                     return;
 
-                var hmacProp = signProp.FindPropertyRelative(nameof(SigningOptions.Hmac));
                 var selected = (SigningType)typeProp.enumValueIndex;
 
                 EditorGUI.indentLevel++;
                 switch (selected)
                 {
                     case SigningType.Hmac:
-                        if (hmacProp != null)
-                            EditorGUILayout.PropertyField(hmacProp, true);
+                        if (hmacKeyIdProp != null)
+                            EditorGUILayout.PropertyField(hmacKeyIdProp, new GUIContent("Key Id"));
                         break;
 
                     default:
@@ -692,7 +695,6 @@ namespace FlowSave.Editor
 
             int raw = appModeProp.intValue;
 
-            // Build mask of all known flags (except None)
             int allMask = 0;
             foreach (AppMode m in Enum.GetValues(typeof(AppMode)))
             {
@@ -700,7 +702,6 @@ namespace FlowSave.Editor
                 allMask |= (int)m;
             }
 
-            // Strip out any unknown bits (like Unity's "Everything" junk)
             raw &= allMask;
 
             if (raw == 0)
@@ -722,13 +723,12 @@ namespace FlowSave.Editor
             if (parts.Count == 0)
                 return "Custom";
 
-            // Optional: special-case "all flags on"
             if (raw == allMask)
                 return "All";
 
             return string.Join(" | ", parts);
         }
-
     }
 }
+
 #endif
