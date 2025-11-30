@@ -1,8 +1,7 @@
-﻿// File: Flowsave/Configurations/PathResolver.cs
-using System.IO;
+﻿using System.IO;
 using UnityEngine;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     public static class PathResolver
     {

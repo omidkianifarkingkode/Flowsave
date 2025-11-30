@@ -2,7 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace Flowsave.Compression
+namespace FlowSave.Compression
 {
     /// <summary>
     /// Brotli compressor. Available on modern Unity/.NET. If your target doesn't have BrotliStream,

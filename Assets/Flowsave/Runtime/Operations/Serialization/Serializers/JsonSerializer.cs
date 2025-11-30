@@ -2,7 +2,7 @@
 using System;
 using System.Text;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     public class JsonSerializer : ISerializer
     {

@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Flowsave
+namespace FlowSave
 {
     public readonly struct Result
     {

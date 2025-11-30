@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Flowsave.Configurations
+namespace FlowSave.Configurations
 {
     [Serializable]
     public class NamespaceConfiguration

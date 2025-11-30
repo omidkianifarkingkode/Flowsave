@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Flowsave.Compression
+namespace FlowSave.Compression
 {
     [Serializable]
     public class DefaultCompressionOptions

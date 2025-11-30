@@ -1,11 +1,10 @@
-﻿using System;
+﻿using FlowSave.Encryption;
+using System;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
-using Flowsave.Operations;
-using Flowsave.Operations.Options;
 
-namespace Flowsave
+namespace FlowSave
 {
     /// <summary>
     /// Holds runtime identity (user / device) and resolves per-user keys

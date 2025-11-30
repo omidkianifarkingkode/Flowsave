@@ -1,12 +1,13 @@
-﻿using Flowsave.Compression;
-using Flowsave.Operations;
-using Flowsave.Operations.Options;
-using Flowsave.Serialization;
-using Flowsave.Storage;
+﻿using FlowSave.Compression;
+using FlowSave.Encryption;
+using FlowSave.Operations;
+using FlowSave.Serialization;
+using FlowSave.Signing;
+using FlowSave.Storage;
 using System;
 using System.Collections.Generic;
 
-namespace Flowsave.Configurations
+namespace FlowSave.Configurations
 {
     [Serializable]
     public class EnvironmentConfiguration

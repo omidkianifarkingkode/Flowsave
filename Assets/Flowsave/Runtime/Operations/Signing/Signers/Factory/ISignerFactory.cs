@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Operations
+﻿namespace FlowSave.Signing
 {
     public interface ISignerFactory
     {

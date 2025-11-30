@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Flowsave.Operations.Builder
+namespace FlowSave.Operations.Builder
 {
     /// <summary>
     /// Unified read/write operation pipeline for FlowSave.

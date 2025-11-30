@@ -1,9 +1,8 @@
-﻿using Flowsave.Operations.Options;
-using System;
+﻿using System;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Flowsave.Operations
+namespace FlowSave.Signing
 {
     public sealed class HmacSha256Signer : ISigner
     {

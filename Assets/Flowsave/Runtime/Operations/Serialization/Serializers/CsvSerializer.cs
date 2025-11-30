@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     /// <summary>
     /// Very simple CSV serializer.

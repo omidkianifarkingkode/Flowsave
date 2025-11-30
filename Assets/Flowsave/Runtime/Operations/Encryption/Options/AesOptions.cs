@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Flowsave.Operations
+namespace FlowSave.Encryption
 {
     public enum KeyBits { _128  = 128, _256 = 256 }
     public enum TagBytes { _12 = 12, _13 = 13, _14 = 14, _15 = 15, _16 = 16 }

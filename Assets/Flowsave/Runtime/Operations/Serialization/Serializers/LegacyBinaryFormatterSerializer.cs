@@ -2,7 +2,7 @@
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     /// <summary>
     /// Legacy BinaryFormatter-based serializer.

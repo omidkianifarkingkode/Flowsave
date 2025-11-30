@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace Flowsave.Operations
+namespace FlowSave.Encryption
 {
     public sealed class AesCbcEncryptor : IEncryptor
     {

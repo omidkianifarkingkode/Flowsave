@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Flowsave.Operations
+﻿namespace FlowSave.Signing
 {
     /// <summary>
     /// No-op signer. Does not sign or wrap data in any way.

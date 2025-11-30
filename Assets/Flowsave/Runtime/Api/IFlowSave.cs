@@ -3,7 +3,7 @@
 using Cysharp.Threading.Tasks;
 #endif
 
-namespace Flowsave
+namespace FlowSave
 {
     public interface IFlowSave
     {
@@ -69,6 +69,6 @@ namespace Flowsave
         UniTask<Result> SaveRawStringUniAsync(string namespaceId, string text);
         UniTask<Result<string>> LoadRawStringUniAsync(string namespaceId);
 
-#endif
+        #endif
     }
 }

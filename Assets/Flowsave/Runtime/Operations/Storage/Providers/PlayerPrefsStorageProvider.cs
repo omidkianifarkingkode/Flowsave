@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Text;
 using System.Threading.Tasks;
-using Flowsave;
 using UnityEngine;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     /// <summary>
     /// PlayerPrefs-backed storage provider. Stores binary payloads as Base64 strings,

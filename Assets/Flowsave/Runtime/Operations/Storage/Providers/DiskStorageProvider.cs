@@ -1,11 +1,10 @@
-﻿using Flowsave;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     /// <summary>
     /// Async, disk-backed storage provider with atomic writes (unless Append=true).

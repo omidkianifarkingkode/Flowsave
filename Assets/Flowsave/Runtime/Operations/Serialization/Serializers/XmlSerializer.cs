@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     public class XmlSerializer : ISerializer
     {

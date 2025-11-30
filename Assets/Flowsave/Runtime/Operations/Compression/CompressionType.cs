@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace Flowsave.Compression
+namespace FlowSave.Compression
 {
     [JsonConverter(typeof(StringEnumConverter))]
     public enum CompressionType : byte

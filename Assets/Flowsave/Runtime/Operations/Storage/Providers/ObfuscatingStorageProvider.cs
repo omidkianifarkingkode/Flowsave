@@ -1,7 +1,6 @@
-﻿using Flowsave.Operations;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     public sealed class ObfuscatingStorageProvider : IStorageProvider
     {

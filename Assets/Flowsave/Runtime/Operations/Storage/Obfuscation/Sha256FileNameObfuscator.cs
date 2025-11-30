@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Flowsave.Operations
+namespace FlowSave.Storage
 {
     public class Sha256FileNameObfuscator : IFileNameObfuscator
     {

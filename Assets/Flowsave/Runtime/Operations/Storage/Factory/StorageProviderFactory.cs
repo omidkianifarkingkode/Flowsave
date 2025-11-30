@@ -1,7 +1,6 @@
-﻿using Flowsave.Operations;
-using System;
+﻿using System;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     public sealed class StorageProviderFactory : IStorageProviderFactory
     {

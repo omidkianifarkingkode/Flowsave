@@ -1,7 +1,6 @@
 ﻿using System;
-using UnityEngine;
 
-namespace Flowsave.Operations.Options
+namespace FlowSave.Signing
 {
     [Serializable]
     public class DefaultSigningOptions

@@ -1,6 +1,6 @@
 using System;
 
-namespace Flowsave.Checksum
+namespace FlowSave.Checksum
 {
     public sealed class NoOpChecksum : IChecksum
     {

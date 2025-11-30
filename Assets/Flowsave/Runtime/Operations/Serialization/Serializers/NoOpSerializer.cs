@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     /// <summary>
     /// "No-op" serializer used when SerializationType.None is selected.

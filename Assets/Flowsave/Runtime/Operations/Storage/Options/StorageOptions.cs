@@ -1,6 +1,6 @@
 using System;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     [Serializable]
     public class DefaultStorageOptions

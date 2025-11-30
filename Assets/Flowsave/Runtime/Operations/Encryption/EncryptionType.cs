@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace Flowsave.Operations
+namespace FlowSave.Encryption
 {
     [JsonConverter(typeof(StringEnumConverter))]
     public enum EncryptionType : byte

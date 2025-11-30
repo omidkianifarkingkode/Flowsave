@@ -1,7 +1,6 @@
-﻿using Flowsave.Operations.Options;
-using System;
+﻿using System;
 
-namespace Flowsave.Operations
+namespace FlowSave.Signing
 {
     public class SignerFactory : ISignerFactory
     {

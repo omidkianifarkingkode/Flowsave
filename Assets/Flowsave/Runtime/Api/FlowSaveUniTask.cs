@@ -1,9 +1,9 @@
 ﻿#if FLOWSAVE_UNITASK
 using Cysharp.Threading.Tasks;
 
-namespace Flowsave
+namespace FlowSave
 {
-    public sealed partial class FlowSave
+    public sealed partial class FlowSaveService
     {
         // ============================================================
         //  High-level (with serialization) – UniTask wrappers

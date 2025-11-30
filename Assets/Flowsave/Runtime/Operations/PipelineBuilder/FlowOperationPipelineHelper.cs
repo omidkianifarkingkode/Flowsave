@@ -1,11 +1,13 @@
-﻿using Flowsave.Compression;
-using Flowsave.Configurations;
-using Flowsave.Serialization;
-using Flowsave.Storage;
+﻿using FlowSave.Compression;
+using FlowSave.Configurations;
+using FlowSave.Encryption;
+using FlowSave.Serialization;
+using FlowSave.Signing;
+using FlowSave.Storage;
 using System;
 using System.Threading.Tasks;
 
-namespace Flowsave.Operations.Builder
+namespace FlowSave.Operations.Builder
 {
     /// <summary>
     /// Unified read/write operation pipeline for FlowSave.

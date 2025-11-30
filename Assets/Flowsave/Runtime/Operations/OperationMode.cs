@@ -2,7 +2,7 @@
 using Newtonsoft.Json.Converters;
 using System;
 
-namespace Flowsave.Operations
+namespace FlowSave.Operations
 {
     [JsonConverter(typeof(StringEnumConverter))]
     public enum OperationMode : byte

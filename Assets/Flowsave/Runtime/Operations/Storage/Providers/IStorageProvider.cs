@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
-using Flowsave;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     /// <summary>
     /// Defines a contract for data storage operations (asynchronous).

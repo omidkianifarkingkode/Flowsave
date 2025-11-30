@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Flowsave.Operations
+namespace FlowSave.Encryption
 {
     public sealed class NoOpEncryptor : IEncryptor
     {

@@ -2,7 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace Flowsave.Compression
+namespace FlowSave.Compression
 {
     /// <summary>
     /// Deflate (zlib raw) compressor using System.IO.Compression. Broadly available on Unity.

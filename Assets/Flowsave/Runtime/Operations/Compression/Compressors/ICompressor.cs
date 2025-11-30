@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Compression
+﻿namespace FlowSave.Compression
 {
     public interface ICompressor
     {

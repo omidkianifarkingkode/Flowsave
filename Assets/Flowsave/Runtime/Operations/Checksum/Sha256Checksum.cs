@@ -1,7 +1,7 @@
 using System;
 using System.Security.Cryptography;
 
-namespace Flowsave.Checksum
+namespace FlowSave.Checksum
 {
     /// <summary>
     /// SHA-256 digest. Not a MAC; use only for non-adversarial corruption checks,

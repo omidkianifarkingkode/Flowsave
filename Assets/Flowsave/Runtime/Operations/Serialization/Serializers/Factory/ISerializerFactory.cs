@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Serialization
+﻿namespace FlowSave.Serialization
 {
     public interface ISerializerFactory
     {

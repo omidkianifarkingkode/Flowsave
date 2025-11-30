@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     public class SerializerFactory : ISerializerFactory
     {

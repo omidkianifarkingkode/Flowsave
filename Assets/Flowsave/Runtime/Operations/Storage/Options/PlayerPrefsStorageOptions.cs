@@ -1,7 +1,6 @@
 ﻿using System;
-using UnityEngine;
 
-namespace Flowsave.Storage
+namespace FlowSave.Storage
 {
     [Serializable]
     public class PlayerPrefsStorageOptions

@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     [Serializable]
     public class JsonOptions

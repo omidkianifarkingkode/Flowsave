@@ -3,7 +3,7 @@ using ProtoBuf;
 using System;
 using System.IO;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     /// <summary>
     /// Binary serializer using protobuf-net.

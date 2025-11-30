@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Flowsave.Operations
+﻿namespace FlowSave.Signing
 {
     public interface ISigner
     {

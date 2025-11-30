@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Operations
+﻿namespace FlowSave.Encryption
 {
     public interface IEncryptorFactory
     {

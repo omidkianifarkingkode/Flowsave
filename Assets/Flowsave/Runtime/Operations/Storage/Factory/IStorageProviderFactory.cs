@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Storage
+﻿namespace FlowSave.Storage
 {
     /// <summary>
     /// Factory bound to a specific FlowSave config snapshot.

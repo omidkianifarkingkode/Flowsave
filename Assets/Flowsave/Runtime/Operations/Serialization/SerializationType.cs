@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     [JsonConverter(typeof(StringEnumConverter))]
     public enum SerializationType

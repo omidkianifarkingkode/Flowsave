@@ -1,6 +1,6 @@
 using System;
 
-namespace Flowsave.Checksum
+namespace FlowSave.Checksum
 {
     /// <summary>
     /// CRC32C (Castagnoli) checksum. Fast 4-byte checksum for corruption detection.

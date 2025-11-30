@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Serialization
+﻿namespace FlowSave.Serialization
 {
     /// <summary>
     /// Defines serialization behavior for FlowSave contexts.

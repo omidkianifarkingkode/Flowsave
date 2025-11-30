@@ -3,7 +3,7 @@
 using MessagePack;
 using System;
 
-namespace Flowsave.Serialization
+namespace FlowSave.Serialization
 {
     /// <summary>
     /// Binary serializer using MessagePack.
