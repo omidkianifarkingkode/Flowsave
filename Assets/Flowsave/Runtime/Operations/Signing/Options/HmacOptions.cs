@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using FlowSave.Logging;
 using UnityEngine;
 
 namespace FlowSave.Signing
@@ -39,7 +40,7 @@ namespace FlowSave.Signing
                 }
                 catch (FormatException)
                 {
-                    Debug.LogWarning("[HmacOptions] KeyB64 is not valid Base64.");
+                    FlowSaveLog.Warning("[HmacOptions] KeyB64 is not valid Base64.");
                     return Array.Empty<byte>();
                 }
             }
@@ -68,7 +69,7 @@ namespace FlowSave.Signing
 
                 if (resolved == null || resolved.Length == 0)
                 {
-                    Debug.LogWarning("[HmacOptions] KeyResolver returned null/empty key, falling back to BaseKey.");
+                    FlowSaveLog.Warning("[HmacOptions] KeyResolver returned null/empty key, falling back to BaseKey.");
                     return baseKey;
                 }
 

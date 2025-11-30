@@ -5,6 +5,7 @@ using FlowSave.Operations;
 using FlowSave.Serialization;
 using FlowSave.Signing;
 using FlowSave.Storage;
+using FlowSave.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -49,14 +50,14 @@ namespace FlowSave.Tests
             var save = await _flow.SaveAsync(NS, data);
 
             if (!save.IsSuccess)
-                Debug.Log(save.Error);
+                FlowSaveLog.Error(save.Error);
 
             Assert.IsTrue(save.IsSuccess);
 
             var load = await _flow.LoadAsync<PlayerData>(NS);
 
             if (!load.IsSuccess)
-                Debug.Log(load.Error);
+                FlowSaveLog.Error(load.Error);
 
             Assert.IsTrue(load.IsSuccess);
             Assert.AreEqual(5, load.Value.level);
@@ -319,7 +320,7 @@ namespace FlowSave.Tests
                 }
             };
 
-            return new FlowSaveService(config);
+            return new FlowSaveService(config, null);
         }
 
         private EnvironmentConfiguration CreateOperationsEnvironment(OperationMode mode, Action<EnvironmentConfiguration> configure)

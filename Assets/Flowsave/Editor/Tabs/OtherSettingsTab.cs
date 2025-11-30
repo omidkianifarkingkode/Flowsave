@@ -1,8 +1,9 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FlowSave.Logging;
 using UnityEditor;
 using UnityEngine;
 
@@ -54,7 +55,41 @@ namespace FlowSave.Editor
                 EditorGUILayout.LabelField("Other Settings", EditorStyles.boldLabel);
                 EditorGUILayout.Space();
 
+                DrawLoggingOptions(config);
+                EditorGUILayout.Space();
+
                 DrawDependencyResolver();
+            }
+
+            private void DrawLoggingOptions(SerializedObject config)
+            {
+                EditorGUILayout.LabelField("Logging", EditorStyles.boldLabel);
+
+                var loggingProp = config.FindProperty(nameof(Configurations.FlowSaveConfiguration.LoggingOptions));
+                if (loggingProp == null)
+                {
+                    EditorGUILayout.HelpBox("Logging options not found on configuration.", MessageType.Warning);
+                    return;
+                }
+
+                using (new EditorGUILayout.VerticalScope("box"))
+                {
+                    EditorGUILayout.PropertyField(
+                        loggingProp.FindPropertyRelative(nameof(LoggingOptions.MinimumLevel)),
+                        new GUIContent("Minimum Level"));
+
+                    EditorGUILayout.PropertyField(loggingProp.FindPropertyRelative(nameof(LoggingOptions.Prefix)));
+
+                    var useColorProp = loggingProp.FindPropertyRelative(nameof(LoggingOptions.UseColorInEditor));
+                    EditorGUILayout.PropertyField(useColorProp, new GUIContent("Use Color in Editor"));
+
+                    using (new EditorGUI.DisabledScope(!useColorProp.boolValue))
+                    {
+                        EditorGUILayout.PropertyField(
+                            loggingProp.FindPropertyRelative(nameof(LoggingOptions.EditorColor)),
+                            new GUIContent("Editor Prefix Color"));
+                    }
+                }
             }
 
             // ─────────────────────────────────────────────────────────
@@ -164,7 +199,7 @@ namespace FlowSave.Editor
                     if (GUILayout.Button("Remove", GUILayout.Width(90)))
                     {
                         symbols.Remove(dep.DefineSymbol);
-                        Debug.Log($"[FlowSave] Removed define symbol: {dep.DefineSymbol}");
+                        FlowSaveLog.Info($"Removed define symbol: {dep.DefineSymbol}");
                     }
                 }
 
@@ -230,7 +265,7 @@ namespace FlowSave.Editor
                 if (!symbols.Contains(dep.DefineSymbol))
                 {
                     symbols.Add(dep.DefineSymbol);
-                    Debug.Log($"[FlowSave] Added define symbol: {dep.DefineSymbol}");
+                    FlowSaveLog.Info($"Added define symbol: {dep.DefineSymbol}");
                 }
             }
 

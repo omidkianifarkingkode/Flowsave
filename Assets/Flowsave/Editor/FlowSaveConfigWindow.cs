@@ -1,8 +1,9 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 
 using UnityEditor;
 using UnityEngine;
 using FlowSave.Configurations;
+using FlowSave.Logging;
 
 namespace FlowSave.Editor
 {
@@ -171,7 +172,7 @@ namespace FlowSave.Editor
             EditorUtility.SetDirty(_config);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[FlowSave] Configuration saved.");
+            FlowSaveLog.Info("Configuration saved.");
         }
 
         #endregion

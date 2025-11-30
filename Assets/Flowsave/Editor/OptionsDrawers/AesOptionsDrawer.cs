@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 
 using FlowSave;           
 using FlowSave.Encryption;
@@ -137,7 +137,7 @@ namespace FlowSave.Editor
                 if (!string.IsNullOrEmpty(derivedB64))
                 {
                     EditorGUIUtility.systemCopyBuffer = derivedB64;
-                    Debug.Log("[FlowSave] Derived AES key copied to clipboard.");
+                    FlowSaveLog.Info("Derived AES key copied to clipboard.");
                 }
             }
         }
@@ -167,7 +167,7 @@ namespace FlowSave.Editor
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[FlowSave] Failed to derive AES key in editor: " + ex.Message);
+                FlowSaveLog.Warning("Failed to derive AES key in editor: " + ex.Message);
                 return string.Empty;
             }
         }
@@ -211,7 +211,7 @@ namespace FlowSave.Editor
             if (GUI.Button(copyRect, "Copy"))
             {
                 EditorGUIUtility.systemCopyBuffer = keyB64Prop.stringValue ?? string.Empty;
-                Debug.Log("[FlowSave] AES base key copied to clipboard.");
+                FlowSaveLog.Info("AES base key copied to clipboard.");
             }
         }
 
@@ -226,7 +226,7 @@ namespace FlowSave.Editor
             }
 
             keyB64Prop.stringValue = Convert.ToBase64String(data);
-            Debug.Log($"[FlowSave] Generated {bits}-bit AES key.");
+            FlowSaveLog.Info($"Generated {bits}-bit AES key.");
         }
     }
 }
