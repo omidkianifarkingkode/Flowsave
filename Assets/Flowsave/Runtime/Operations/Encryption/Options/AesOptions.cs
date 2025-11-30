@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using FlowSave.Logging;
 using UnityEngine;
 
 namespace FlowSave.Encryption
@@ -34,7 +35,7 @@ namespace FlowSave.Encryption
                 }
                 catch (FormatException)
                 {
-                    Debug.LogWarning("[AesOptions] KeyB64 is not valid Base64.");
+                    FlowSaveLog.Warning("[AesOptions] KeyB64 is not valid Base64.");
                     return Array.Empty<byte>();
                 }
             }
@@ -59,7 +60,7 @@ namespace FlowSave.Encryption
                 var resolved = KeyResolver.DeriveAesKey(baseKey, KeyBits);
                 if (resolved == null || resolved.Length == 0)
                 {
-                    Debug.LogWarning("[AesOptions] KeyResolver returned null/empty key, falling back to BaseKey.");
+                    FlowSaveLog.Warning("[AesOptions] KeyResolver returned null/empty key, falling back to BaseKey.");
                     return baseKey;
                 }
 
@@ -71,7 +72,7 @@ namespace FlowSave.Encryption
         public void Validate()
         {
             if (Key.Length != ((int)KeyBits / 8))
-                Debug.LogWarning($"[AesOptions] key length is {Key.Length} bytes but keyBits is {KeyBits}. For tests it will still run but fix this before shipping.");
+                FlowSaveLog.Warning($"[AesOptions] key length is {Key.Length} bytes but keyBits is {KeyBits}. For tests it will still run but fix this before shipping.");
         }
 
         public static AesOptions Clone(AesOptions from) =>

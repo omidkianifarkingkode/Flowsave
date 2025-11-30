@@ -1,4 +1,5 @@
 using FlowSave.Configurations;
+using FlowSave.Logging;
 using UnityEngine;
 
 namespace FlowSave
@@ -14,6 +15,9 @@ namespace FlowSave
         [Header("Config Repository")]
         [SerializeField] private FlowSaveConfiguration configuration;
 
+        [Header("Logging")]
+        [SerializeReference] private ILogger logger;
+
         [Header("Environment")]
         [SerializeField] private bool overrideEditorMode;
         [SerializeField] private AppMode editorModeOverride = AppMode.Editor;
@@ -22,6 +26,12 @@ namespace FlowSave
         /// Global FlowSave service instance.
         /// </summary>
         public static IFlowSave Instance { get; private set; }
+
+        public ILogger Logger
+        {
+            get => logger;
+            set => logger = value;
+        }
 
         /// <summary>
         /// True if FlowSave has been initialized successfully.
@@ -40,7 +50,7 @@ namespace FlowSave
 
             if (configuration == null)
             {
-                Debug.LogError("[FlowSaveBootstrapper] ConfigRepository is not assigned.");
+                FlowSaveLog.Error("[FlowSaveBootstrapper] ConfigRepository is not assigned.");
                 return;
             }
 
@@ -55,13 +65,13 @@ namespace FlowSave
             KeyResolver.Initialize(SystemInfo.deviceUniqueIdentifier);
 
             // Create the FlowSave service
-            Instance = new FlowSaveService(configuration);
+            Instance = new FlowSaveService(configuration, logger);
             _initialized = true;
 
             // Keep this across scene loads
             DontDestroyOnLoad(gameObject);
 
-            Debug.Log("[FlowSaveBootstrapper] FlowSave initialized.");
+            FlowSaveLog.Info("[FlowSaveBootstrapper] FlowSave initialized.");
         }
     }
 }

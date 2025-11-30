@@ -1,9 +1,10 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using FlowSave.Logging;
 
 
 namespace FlowSave.Configurations
@@ -16,7 +17,7 @@ namespace FlowSave.Configurations
         {
             var enConfig = GetEnvironmentConfiguration("test");
 
-            Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(enConfig, Newtonsoft.Json.Formatting.Indented));
+            FlowSaveLog.Info(Newtonsoft.Json.JsonConvert.SerializeObject(enConfig, Newtonsoft.Json.Formatting.Indented));
         }
 
         [ContextMenu("AddNamespace")]
@@ -24,7 +25,7 @@ namespace FlowSave.Configurations
         {
             if (DefaultEnvironments == null || DefaultEnvironments.Count == 0)
             {
-                Debug.LogWarning("[FlowSaveConfiguration] DefaultEnvironments is empty – cannot create namespace env.");
+                FlowSaveLog.Warning("[FlowSaveConfiguration] DefaultEnvironments is empty – cannot create namespace env.");
                 return;
             }
 

@@ -1,5 +1,6 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 
+using FlowSave.Logging;
 using FlowSave.Signing;
 using System;
 using System.Security.Cryptography;
@@ -120,7 +121,7 @@ namespace FlowSave.Editor
                 if (!string.IsNullOrEmpty(derivedB64))
                 {
                     EditorGUIUtility.systemCopyBuffer = derivedB64;
-                    Debug.Log("[FlowSave] Derived HMAC key copied to clipboard.");
+                    FlowSaveLog.Info("Derived HMAC key copied to clipboard.");
                 }
             }
         }
@@ -150,7 +151,7 @@ namespace FlowSave.Editor
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[FlowSave] Failed to derive HMAC key in editor: " + ex.Message);
+                FlowSaveLog.Warning("Failed to derive HMAC key in editor: " + ex.Message);
                 return string.Empty;
             }
         }
@@ -194,7 +195,7 @@ namespace FlowSave.Editor
             if (GUI.Button(copyRect, "Copy"))
             {
                 EditorGUIUtility.systemCopyBuffer = keyB64Prop.stringValue ?? string.Empty;
-                Debug.Log("[FlowSave] HMAC base key copied to clipboard.");
+                FlowSaveLog.Info("HMAC base key copied to clipboard.");
             }
         }
 
@@ -209,7 +210,7 @@ namespace FlowSave.Editor
             }
 
             keyB64Prop.stringValue = Convert.ToBase64String(data);
-            Debug.Log($"[FlowSave] Generated {keyBytes}-byte HMAC key.");
+            FlowSaveLog.Info($"Generated {keyBytes}-byte HMAC key.");
         }
     }
 }

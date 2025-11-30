@@ -1,9 +1,10 @@
-﻿using FlowSave.Compression;
+using FlowSave.Compression;
 using FlowSave.Encryption;
 using FlowSave.Operations;
 using FlowSave.Serialization;
 using FlowSave.Signing;
 using FlowSave.Storage;
+using FlowSave.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace FlowSave.Configurations
         public DefaultSerializationOptions DefaultSerializationOptions = new();
         public DefaultEncryptionOptions DefaultEncryptionOptions = new();
         public DefaultSigningOptions DefaultSigningOptions = new();
+        public LoggingOptions LoggingOptions = new();
         [Space()]
         public List<EnvironmentConfiguration> DefaultEnvironments;
         public List<NamespaceConfiguration> Namespaces;
