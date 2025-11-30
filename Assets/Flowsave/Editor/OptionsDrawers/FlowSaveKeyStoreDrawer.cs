@@ -19,10 +19,6 @@ namespace FlowSave.Editor
         /// </summary>
         private static class FlowSaveKeyStoreDrawer
         {
-            // Default ids used when auto-filling KeyId based on Kind.
-            private const string DefaultAesKeyId = "aes-main";
-            private const string DefaultHmacKeyId = "hmac-main";
-
             public static void DrawKeyStore(SerializedProperty keyStoreProp)
             {
                 if (keyStoreProp == null)
@@ -85,10 +81,6 @@ namespace FlowSave.Editor
                     {
                         EditorGUI.indentLevel++;
 
-                        // KeyId
-                        if (keyIdProp != null)
-                            EditorGUILayout.PropertyField(keyIdProp, new GUIContent("Key Id"));
-
                         // Kind
                         KeyKind? kind = null;
                         if (kindProp != null && kindProp.propertyType == SerializedPropertyType.Enum)
@@ -96,6 +88,10 @@ namespace FlowSave.Editor
                             EditorGUILayout.PropertyField(kindProp, new GUIContent("Kind"));
                             kind = (KeyKind)kindProp.enumValueIndex;
                         }
+
+                        // KeyId row with "Default" button
+                        if (keyIdProp != null)
+                            DrawKeyIdRow(keyIdProp, kind);
 
                         // Kind-specific fields
                         if (kind.HasValue)
@@ -112,10 +108,13 @@ namespace FlowSave.Editor
                             }
                         }
 
-                        // Auto-fill KeyId if empty
+                        // Auto-fill KeyId if still empty
                         if (keyIdProp != null && string.IsNullOrEmpty(keyIdProp.stringValue) && kind.HasValue)
                         {
-                            string baseId = kind.Value == KeyKind.Aes ? DefaultAesKeyId : DefaultHmacKeyId;
+                            string baseId = kind.Value == KeyKind.Aes
+                                ? KeyStoreOptions.DefaultAesKeyId
+                                : KeyStoreOptions.DefaultHmacKeyId;
+
                             keyIdProp.stringValue = keysProp.arraySize > 1
                                 ? $"{baseId}-{keysProp.arraySize - 1}"
                                 : baseId;
@@ -162,9 +161,59 @@ namespace FlowSave.Editor
                         keyB64Prop.stringValue = string.Empty;
 
                     if (keyIdProp != null)
-                        keyIdProp.stringValue = DefaultAesKeyId; // will be adjusted if user changes Kind
+                        keyIdProp.stringValue = KeyStoreOptions.DefaultAesKeyId; // default for AES
 
                     newKeyProp.isExpanded = true;
+                }
+            }
+
+            // --------------------------------------------------------
+            // Key Id row: [Key Id][Default]
+            // --------------------------------------------------------
+
+            private static void DrawKeyIdRow(SerializedProperty keyIdProp, KeyKind? kind)
+            {
+                float line = EditorGUIUtility.singleLineHeight;
+                float buttonWidth = 70f;
+                float spacing = 4f;
+
+                var rect = GUILayoutUtility.GetRect(0f, line);
+
+                // Label
+                var labelRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, line);
+                EditorGUI.LabelField(labelRect, "Key Id");
+
+                float remaining = rect.width - EditorGUIUtility.labelWidth;
+                float fieldWidth = remaining - (buttonWidth + spacing);
+
+                float x = rect.x + EditorGUIUtility.labelWidth;
+
+                // Text field
+                var fieldRect = new Rect(x, rect.y, fieldWidth, line);
+                keyIdProp.stringValue = EditorGUI.TextField(fieldRect, GUIContent.none, keyIdProp.stringValue);
+
+                x += fieldWidth + spacing;
+
+                // "Default" button
+                var btnRect = new Rect(x, rect.y, buttonWidth, line);
+                if (GUI.Button(btnRect, "Default"))
+                {
+                    string defId = string.Empty;
+
+                    switch (kind)
+                    {
+                        case KeyKind.Aes:
+                            defId = KeyStoreOptions.DefaultAesKeyId;
+                            break;
+                        case KeyKind.Hmac:
+                            defId = KeyStoreOptions.DefaultHmacKeyId;
+                            break;
+                    }
+
+                    if (!string.IsNullOrEmpty(defId))
+                    {
+                        keyIdProp.stringValue = defId;
+                    }
                 }
             }
 

@@ -43,6 +43,7 @@ namespace FlowSave.Editor
             _tabs = new IFlowSaveConfigTab[]
             {
             new GlobalDefaultsTab(),
+            new KeyStoresTab(),
             new NamespacesTab(),
             new OtherSettingsTab(),
             };

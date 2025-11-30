@@ -23,7 +23,6 @@ namespace FlowSave.Configurations
         public SerializationOptions SerializationOptions = new();
         public EncryptionOptions EncryptionOptions = new();
         public SigningOptions SigningOptions = new();
-        public KeyStoreOptions KeyStore = new();
 
         public int SchemaVersion = 1;
 
@@ -42,7 +41,6 @@ namespace FlowSave.Configurations
                 SerializationOptions = SerializationOptions.Clone(from.SerializationOptions),
                 EncryptionOptions = EncryptionOptions.Clone(from.EncryptionOptions),
                 SigningOptions = SigningOptions.Clone(from.SigningOptions),
-                KeyStore = KeyStoreOptions.Clone(from.KeyStore),
             };
 
     }

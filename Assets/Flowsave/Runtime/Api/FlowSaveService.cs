@@ -39,7 +39,9 @@ namespace FlowSave
             if (env == null)
                 return Result.Failure($"No environment configuration found for namespace '{namespaceId}'.");
 
-            var pipeline = FlowOperationPipeline<T>.CreateWritePipeline(env, namespaceId);
+            var keyStore = _config.GetKeyStoreForEnvironment(env);
+
+            var pipeline = FlowOperationPipeline<T>.CreateWritePipeline(env, keyStore, namespaceId);
             return await pipeline.ExecuteWriteAsync(data).ConfigureAwait(false);
         }
 
@@ -52,7 +54,9 @@ namespace FlowSave
             if (env == null)
                 return Result<T>.Failure($"No environment configuration found for namespace '{namespaceId}'.");
 
-            var pipeline = FlowOperationPipeline<T>.CreateReadPipeline(env, namespaceId);
+            var keyStore = _config.GetKeyStoreForEnvironment(env);
+
+            var pipeline = FlowOperationPipeline<T>.CreateReadPipeline(env, keyStore, namespaceId);
             return await pipeline.ExecuteReadAsync().ConfigureAwait(false);
         }
 
@@ -110,7 +114,9 @@ namespace FlowSave
             var envClone = EnvironmentConfiguration.Clone(env);
             envClone.SerializationOptions.SerializationType = SerializationType.None;
 
-            var pipeline = FlowOperationPipeline<byte[]>.CreateWritePipeline(envClone, namespaceId);
+            var keyStore = _config.GetKeyStoreForEnvironment(env);
+
+            var pipeline = FlowOperationPipeline<byte[]>.CreateWritePipeline(envClone, keyStore, namespaceId);
             return await pipeline.ExecuteWriteAsync(data).ConfigureAwait(false);
         }
 
@@ -127,7 +133,9 @@ namespace FlowSave
             var envClone = EnvironmentConfiguration.Clone(env);
             envClone.SerializationOptions.SerializationType = SerializationType.None;
 
-            var pipeline = FlowOperationPipeline<byte[]>.CreateReadPipeline(envClone, namespaceId);
+            var keyStore = _config.GetKeyStoreForEnvironment(env);
+
+            var pipeline = FlowOperationPipeline<byte[]>.CreateReadPipeline(envClone, keyStore, namespaceId);
             return await pipeline.ExecuteReadAsync().ConfigureAwait(false);
         }
 

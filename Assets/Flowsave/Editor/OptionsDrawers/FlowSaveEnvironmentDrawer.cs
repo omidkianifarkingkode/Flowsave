@@ -29,8 +29,7 @@ namespace FlowSave.Editor
                 bool showAddButton = true,
                 bool compactOptions = false,
                 bool allowDelete = true,
-                bool allowAppModeEdit = true,
-                bool showKeyStore = true)
+                bool allowAppModeEdit = true)
             {
                 if (envsProp == null)
                 {
@@ -89,15 +88,6 @@ namespace FlowSave.Editor
                                 {
                                     EditorGUILayout.PropertyField(appModeProp);
                                 }
-                            }
-                        }
-
-                        if (showKeyStore)
-                        {
-                            var keyStoreProp = envProp.FindPropertyRelative(nameof(EnvironmentConfiguration.KeyStore));
-                            if (keyStoreProp != null)
-                            {
-                                FlowSaveKeyStoreDrawer.DrawKeyStore(keyStoreProp);
                             }
                         }
 

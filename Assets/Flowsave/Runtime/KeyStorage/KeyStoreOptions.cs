@@ -1,9 +1,7 @@
-﻿using System;
+﻿using FlowSave.Logging;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using FlowSave.Encryption;
-using FlowSave.Signing;
-using FlowSave.Logging;
 
 namespace FlowSave.KeyStorage
 {
@@ -13,9 +11,9 @@ namespace FlowSave.KeyStorage
         [Header("All keys for this environment")]
         public List<KeyDefinition> Keys = new();
 
-        [Header("Defaults")]
-        public string DefaultAesKeyId = "aes-main";
-        public string DefaultHmacKeyId = "hmac-main";
+        // Global default ids (not per-instance)
+        public static string DefaultAesKeyId = "aes-main";
+        public static string DefaultHmacKeyId = "hmac-main";
 
         public static KeyStoreOptions Clone(KeyStoreOptions from)
         {
@@ -24,8 +22,6 @@ namespace FlowSave.KeyStorage
 
             var clone = new KeyStoreOptions
             {
-                DefaultAesKeyId = from.DefaultAesKeyId,
-                DefaultHmacKeyId = from.DefaultHmacKeyId,
                 Keys = new List<KeyDefinition>(from.Keys?.Count ?? 0)
             };
 

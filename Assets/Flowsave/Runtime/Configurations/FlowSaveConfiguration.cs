@@ -1,10 +1,12 @@
+﻿using Flowsave.KeyStorage;
 using FlowSave.Compression;
 using FlowSave.Encryption;
+using FlowSave.KeyStorage;
+using FlowSave.Logging;
 using FlowSave.Operations;
 using FlowSave.Serialization;
 using FlowSave.Signing;
 using FlowSave.Storage;
-using FlowSave.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -22,6 +24,7 @@ namespace FlowSave.Configurations
         [Space()]
         public List<EnvironmentConfiguration> DefaultEnvironments;
         public List<NamespaceConfiguration> Namespaces;
+        public List<AppModeKeyStore> KeyStores = new();
 
         /// <summary>
         /// Optional delegate to override the runtime AppMode resolution.
@@ -74,6 +77,57 @@ namespace FlowSave.Configurations
 
             return result;
         }
+
+        public KeyStoreOptions GetKeyStoreForMode(AppMode mode)
+        {
+            if (KeyStores == null || KeyStores.Count == 0)
+                return null;
+
+            if (mode == AppMode.None)
+                return null;
+
+            int modeMask = (int)mode;
+            AppModeKeyStore bestExact = null;
+            AppModeKeyStore bestOverlap = null;
+
+            foreach (var store in KeyStores)
+            {
+                if (store == null || store.KeyStore == null)
+                    continue;
+
+                var storeMode = store.AppMode;
+                if (storeMode == AppMode.None)
+                    continue;
+
+                int storeMask = (int)storeMode;
+
+                // no overlap
+                if ((storeMask & modeMask) == 0)
+                    continue;
+
+                // exact match → best
+                if (storeMask == modeMask)
+                {
+                    bestExact = store;
+                    break;
+                }
+
+                // first overlapping one as fallback
+                if (bestOverlap == null)
+                    bestOverlap = store;
+            }
+
+            return (bestExact ?? bestOverlap)?.KeyStore;
+        }
+
+        public KeyStoreOptions GetKeyStoreForEnvironment(EnvironmentConfiguration env)
+        {
+            if (env == null)
+                return null;
+
+            return GetKeyStoreForMode(env.AppMode);
+        }
+
 
         private EnvironmentConfiguration CreateBaseEnvironment(AppMode mode)
         {

@@ -98,8 +98,7 @@ namespace FlowSave.Editor
                     showAddButton: false,
                     compactOptions: false,
                     allowDelete: false,
-                    allowAppModeEdit: false,
-                    showKeyStore: true);
+                    allowAppModeEdit: false);
 
                 EditorGUILayout.EndScrollView();
             }

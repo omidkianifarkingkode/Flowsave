@@ -1,3 +1,4 @@
+using Flowsave.KeyStorage;
 using FlowSave.Compression;
 using FlowSave.Configurations;
 using FlowSave.Encryption;
@@ -25,7 +26,7 @@ namespace FlowSave.Tests
         private static readonly byte[] EncryptionKey = Enumerable.Repeat((byte)0x23, 32).ToArray();
         private static readonly byte[] SigningKey = Enumerable.Repeat((byte)0x42, 32).ToArray();
 
-        [System.Serializable]
+        [Serializable]
         public class PlayerData
         {
             public int level;
@@ -49,14 +50,11 @@ namespace FlowSave.Tests
             var data = new PlayerData { level = 5, name = "Omid" };
 
             var save = await _flow.SaveAsync(NS, data);
-
             if (!save.IsSuccess)
                 FlowSaveLog.Error(save.Error);
-
             Assert.IsTrue(save.IsSuccess);
 
             var load = await _flow.LoadAsync<PlayerData>(NS);
-
             if (!load.IsSuccess)
                 FlowSaveLog.Error(load.Error);
 
@@ -184,7 +182,6 @@ namespace FlowSave.Tests
             Assert.AreEqual(data.name, load.Value.name);
         }
 
-
         [Test]
         public async void SaveAndLoad_WithSigning_Works()
         {
@@ -206,7 +203,6 @@ namespace FlowSave.Tests
             Assert.AreEqual(data.level, load.Value.level);
             Assert.AreEqual(data.name, load.Value.name);
         }
-
 
         [Test]
         public async void SaveAndLoad_WithAllOperations_Works()
@@ -242,10 +238,13 @@ namespace FlowSave.Tests
             Assert.AreEqual(data.name, load.Value.name);
         }
 
+        // ------------------------------------------------------------
+        //  Helpers
+        // ------------------------------------------------------------
 
         private static EnvironmentConfiguration CreateBaseEnvironment(StorageType storageType)
         {
-            var env = new EnvironmentConfiguration
+            return new EnvironmentConfiguration
             {
                 AppMode = AppMode.Editor,
                 StorageOptions = new StorageOptions
@@ -282,7 +281,7 @@ namespace FlowSave.Tests
                 {
                     UseDefault = false,
                     EncryptionType = EncryptionType.None,
-                    // default key ids – we’ll define them below
+                    // default key ids – defined in keystore
                     Aes128KeyId = "aes-128",
                     Aes256KeyId = "aes-256"
                 },
@@ -290,17 +289,21 @@ namespace FlowSave.Tests
                 {
                     UseDefault = false,
                     SigningType = SigningType.None,
-                    // default key id
+                    // default key id – defined in keystore
                     HmacKeyId = "tests"
-                },
-                KeyStore = new KeyStoreOptions()
+                }
             };
+        }
 
-            // Define all keys needed by tests
-            env.KeyStore.DefaultAesKeyId = "aes-256";
-            env.KeyStore.DefaultHmacKeyId = "tests";
+        /// <summary>
+        /// Build a keystore for AppMode.Editor with all keys used in tests.
+        /// </summary>
+        private static AppModeKeyStore CreateEditorKeyStore()
+        {
+            var ks = new KeyStoreOptions();
 
-            env.KeyStore.Keys.Add(new KeyDefinition
+            // AES-256 key
+            ks.Keys.Add(new KeyDefinition
             {
                 KeyId = "aes-256",
                 Kind = KeyKind.Aes,
@@ -309,7 +312,8 @@ namespace FlowSave.Tests
                 KeyB64 = Convert.ToBase64String(EncryptionKey)
             });
 
-            env.KeyStore.Keys.Add(new KeyDefinition
+            // AES-128 key
+            ks.Keys.Add(new KeyDefinition
             {
                 KeyId = "aes-128",
                 Kind = KeyKind.Aes,
@@ -318,7 +322,8 @@ namespace FlowSave.Tests
                 KeyB64 = Convert.ToBase64String(EncryptionKey.Take(16).ToArray())
             });
 
-            env.KeyStore.Keys.Add(new KeyDefinition
+            // HMAC key for Signing test
+            ks.Keys.Add(new KeyDefinition
             {
                 KeyId = "tests",
                 Kind = KeyKind.Hmac,
@@ -327,7 +332,8 @@ namespace FlowSave.Tests
                 TruncateTo = HmacTruncate._32
             });
 
-            env.KeyStore.Keys.Add(new KeyDefinition
+            // HMAC key for AllOperations test (shorter signature)
+            ks.Keys.Add(new KeyDefinition
             {
                 KeyId = "tests-all",
                 Kind = KeyKind.Hmac,
@@ -336,31 +342,46 @@ namespace FlowSave.Tests
                 TruncateTo = HmacTruncate._16
             });
 
-            return env;
+            return new AppModeKeyStore
+            {
+                AppMode = AppMode.Editor,
+                KeyStore = ks
+            };
         }
-
 
         private FlowSaveService CreateFlowSave(EnvironmentConfiguration env, string namespaceId)
         {
             var config = ScriptableObject.CreateInstance<FlowSaveConfiguration>();
+
             config.Namespaces = new List<NamespaceConfiguration>
             {
-                new() {
+                new()
+                {
                     NamespaceId = namespaceId,
                     Environments = new List<EnvironmentConfiguration> { env }
                 }
+            };
+
+            // Attach a keystore for AppMode.Editor
+            config.KeyStores = new List<AppModeKeyStore>
+            {
+                CreateEditorKeyStore()
             };
 
             FlowSaveLog.SetLogger(new UnityLogger(config.LoggingOptions));
             return new FlowSaveService(config);
         }
 
-        private EnvironmentConfiguration CreateOperationsEnvironment(OperationMode mode, Action<EnvironmentConfiguration> configure)
+        private EnvironmentConfiguration CreateOperationsEnvironment(
+            OperationMode mode,
+            Action<EnvironmentConfiguration> configure)
         {
             return CreateOperationsEnvironment(new[] { mode }, configure);
         }
 
-        private EnvironmentConfiguration CreateOperationsEnvironment(IEnumerable<OperationMode> modes, Action<EnvironmentConfiguration> configure)
+        private EnvironmentConfiguration CreateOperationsEnvironment(
+            IEnumerable<OperationMode> modes,
+            Action<EnvironmentConfiguration> configure)
         {
             var envClone = EnvironmentConfiguration.Clone(_baseEnvironment);
             envClone.Operations = modes.ToList();

@@ -1,6 +1,7 @@
 ﻿using FlowSave.Compression;
 using FlowSave.Configurations;
 using FlowSave.Encryption;
+using FlowSave.KeyStorage;
 using FlowSave.Serialization;
 using FlowSave.Signing;
 using FlowSave.Storage;
@@ -30,7 +31,7 @@ namespace FlowSave.Operations.Builder
         /// Builds a full WRITE pipeline from the given environment:
         /// T -> serialize -> compress -> (encrypt) -> (sign) -> storage.
         /// </summary>
-        public static FlowOperationPipeline<T> CreateWritePipeline(EnvironmentConfiguration env, string logicalKey)
+        public static FlowOperationPipeline<T> CreateWritePipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore, string logicalKey)
         {
             if (env == null)
                 throw new ArgumentNullException(nameof(env));
@@ -49,7 +50,7 @@ namespace FlowSave.Operations.Builder
             var storage = storageFactory.CreateStorageProvider(env.StorageOptions.StorageType);
 
             // 3. Build byte[] -> Result<byte[]> pipeline (compression, encryption, signing)
-            var bytePipeline = BuildWriteBytesPipeline(env);
+            var bytePipeline = BuildWriteBytesPipeline(env, keyStore);
 
             // 4. Final write delegate
             async Task<Result> WriteAsync(T value)
@@ -81,7 +82,7 @@ namespace FlowSave.Operations.Builder
         /// Builds a full READ pipeline from the given environment:
         /// storage -> (verify) -> (decrypt) -> decompress -> deserialize -> T.
         /// </summary>
-        public static FlowOperationPipeline<T> CreateReadPipeline(EnvironmentConfiguration env, string logicalKey)
+        public static FlowOperationPipeline<T> CreateReadPipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore, string logicalKey)
         {
             if (env == null)
                 throw new ArgumentNullException(nameof(env));
@@ -100,7 +101,7 @@ namespace FlowSave.Operations.Builder
             var storage = storageFactory.CreateStorageProvider(env.StorageOptions.StorageType);
 
             // 3. Build byte[] -> Result<byte[]> pipeline (verify, decrypt, decompress) – reverse order of write
-            var bytePipeline = BuildReadBytesPipeline(env);
+            var bytePipeline = BuildReadBytesPipeline(env, keyStore);
 
             // 4. Final read delegate
             async Task<Result<T>> ReadAsync()
@@ -153,7 +154,7 @@ namespace FlowSave.Operations.Builder
         //  WRITE path (byte[] -> Result<byte[]>)
         // ------------------------------------------------------------
 
-        private static ByteStep BuildWriteBytesPipeline(EnvironmentConfiguration env)
+        private static ByteStep BuildWriteBytesPipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore)
         {
             ByteStep pipeline = IdentityStep;
 
@@ -189,7 +190,7 @@ namespace FlowSave.Operations.Builder
             IEncryptor encryptor;
             if (encryptionEnabled)
             {
-                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions, env.KeyStore);
+                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions, keyStore);
                 encryptor = encryptorFactory.CreateEncryptor(env.EncryptionOptions.EncryptionType);
             }
             else
@@ -211,7 +212,7 @@ namespace FlowSave.Operations.Builder
             ISigner signer;
             if (signingEnabled)
             {
-                var signerFactory = new SignerFactory(env.SigningOptions, env.KeyStore);
+                var signerFactory = new SignerFactory(env.SigningOptions, keyStore);
                 signer = signerFactory.CreateSigner(env.SigningOptions.SigningType);
             }
             else
@@ -230,7 +231,7 @@ namespace FlowSave.Operations.Builder
         //  READ path (byte[] -> Result<byte[]>)
         // ------------------------------------------------------------
 
-        private static ByteStep BuildReadBytesPipeline(EnvironmentConfiguration env)
+        private static ByteStep BuildReadBytesPipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore)
         {
             ByteStep pipeline = IdentityStep;
 
@@ -248,7 +249,7 @@ namespace FlowSave.Operations.Builder
             ISigner signer;
             if (signingEnabled)
             {
-                var signerFactory = new SignerFactory(env.SigningOptions, env.KeyStore);
+                var signerFactory = new SignerFactory(env.SigningOptions, keyStore);
                 signer = signerFactory.CreateSigner(env.SigningOptions.SigningType);
             }
             else
@@ -269,7 +270,7 @@ namespace FlowSave.Operations.Builder
             IEncryptor encryptor;
             if (encryptionEnabled)
             {
-                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions, env.KeyStore);
+                var encryptorFactory = new EncryptorFactory(env.EncryptionOptions, keyStore);
                 encryptor = encryptorFactory.CreateEncryptor(env.EncryptionOptions.EncryptionType);
             }
             else
