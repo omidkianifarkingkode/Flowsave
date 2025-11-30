@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using FlowSave.Compression;
 using System.IO.Compression;
 
 namespace FlowSave.Compression
@@ -15,7 +16,7 @@ namespace FlowSave.Compression
 
         public Result<byte[]> Compress(byte[] data)
         {
-            if (data == null) return Result<byte[]>.Failure("Data is null.");
+            if (data == null) return CompressionErrors.DataNull;
 
             try
             {
@@ -28,13 +29,13 @@ namespace FlowSave.Compression
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure(ex.Message);
+                return CompressionErrors.CompressFailed(ex.Message, CompressionErrors.DeflateModule);
             }
         }
 
         public Result<byte[]> Decompress(byte[] data)
         {
-            if (data == null) return Result<byte[]>.Failure("Data is null.");
+            if (data == null) return CompressionErrors.DataNull;
 
             try
             {
@@ -46,7 +47,7 @@ namespace FlowSave.Compression
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure(ex.Message);
+                return CompressionErrors.DecompressFailed(ex.Message, CompressionErrors.DeflateModule);
             }
         }
     }

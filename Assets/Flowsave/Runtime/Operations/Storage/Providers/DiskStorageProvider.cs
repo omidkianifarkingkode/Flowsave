@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using FlowSave.Runtime.Operations.Storage;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,9 +40,9 @@ namespace FlowSave.Storage
         public async Task<Result> SaveAsync(string key, byte[] data)
         {
             if (string.IsNullOrWhiteSpace(key))
-                return Result.Failure("Key is required.");
+                return StorageErrors.KeyRequiredResult;
             if (data == null)
-                return Result.Failure("Data is null.");
+                return StorageErrors.DataNull;
 
             try
             {
@@ -61,7 +62,7 @@ namespace FlowSave.Storage
             }
             catch (Exception ex)
             {
-                return Result.Failure($"Disk save failed: {ex.Message}");
+                return StorageErrors.SaveFailed(ex.Message, StorageErrors.DiskModule);
             }
         }
 
@@ -165,13 +166,13 @@ namespace FlowSave.Storage
         public async Task<Result<byte[]>> LoadAsync(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
-                return Result<byte[]>.Failure("Key is required.");
+                return StorageErrors.KeyRequired;
 
             try
             {
                 var path = GetPath(key);
                 if (!File.Exists(path))
-                    return Result<byte[]>.Failure($"Key not found: {key}");
+                    return StorageErrors.KeyNotFound(key, StorageErrors.DiskModule);
 
                 using var fs = new FileStream(path,
                     FileMode.Open,
@@ -182,7 +183,7 @@ namespace FlowSave.Storage
 
                 var len = fs.Length;
                 if (len > int.MaxValue)
-                    return Result<byte[]>.Failure("File too large.");
+                    return StorageErrors.FileTooLarge(bytes.Length);
 
                 var buffer = new byte[len];
 
@@ -198,8 +199,8 @@ namespace FlowSave.Storage
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure($"Disk load failed: {ex.Message}");
-            }
+                return StorageErrors.LoadFailed(ex.Message, StorageErrors.DiskModule);
+        }
         }
 
         // ============================================================
@@ -209,7 +210,7 @@ namespace FlowSave.Storage
         public Task<Result> DeleteAsync(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
-                return Result.Failure("Key is required.").ToTask();
+                return StorageErrors.KeyRequiredResult.ToTask();
 
             try
             {
@@ -230,7 +231,7 @@ namespace FlowSave.Storage
             }
             catch (Exception ex)
             {
-                return Result.Failure($"Disk delete failed: {ex.Message}").ToTask();
+                return StorageErrors.DeleteFailed(ex.Message, StorageErrors.DiskModule).ToTask();
             }
         }
 
@@ -241,18 +242,18 @@ namespace FlowSave.Storage
         public Task<Result<bool>> ExistsAsync(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
-                return Result<bool>.Failure("Key is required.").ToTask();
+                return StorageErrors.KeyRequiredBool.ToTask();
 
             try
             {
                 var path = GetPath(key);
-                return Result<bool>.Success(File.Exists(path)).ToTask();
-            }
-            catch (Exception ex)
-            {
-                return Result<bool>.Failure($"Exists check failed: {ex.Message}").ToTask();
-            }
+            return Result<bool>.Success(File.Exists(path)).ToTask();
         }
+        catch (Exception ex)
+        {
+            return StorageErrors.ExistsFailed(ex.Message, StorageErrors.DiskModule).ToTask();
+        }
+    }
 
         // ============================================================
         // PATH + SANITIZATION

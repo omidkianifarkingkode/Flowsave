@@ -9,7 +9,7 @@
         {
             // No copying—just return the same reference.
             if (data == null)
-                return Result<byte[]>.Failure("Data is null.");
+                return CompressionErrors.DataNull;
 
             return Result<byte[]>.Success(data);
         }
@@ -17,7 +17,7 @@
         public Result<byte[]> Decompress(byte[] data)
         {
             if (data == null)
-                return Result<byte[]>.Failure("Data is null.");
+                return CompressionErrors.DataNull;
 
             return Result<byte[]>.Success(data);
         }

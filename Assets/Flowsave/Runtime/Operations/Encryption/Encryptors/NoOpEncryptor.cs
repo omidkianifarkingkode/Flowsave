@@ -10,7 +10,7 @@ namespace FlowSave.Encryption
         public Result<byte[]> Encrypt(byte[] plaintext)
         {
             if (plaintext == null)
-                return Result<byte[]>.Failure("Plaintext is null.");
+                return EncryptionErrors.PlaintextNull;
 
             // No encryption → return the same reference
             return Result<byte[]>.Success(plaintext);
@@ -19,7 +19,7 @@ namespace FlowSave.Encryption
         public Result<byte[]> Decrypt(byte[] encryptedEnvelope)
         {
             if (encryptedEnvelope == null)
-                return Result<byte[]>.Failure("Encrypted payload is null.");
+                return EncryptionErrors.EncryptedPayloadNull;
 
             // No decryption → return the same reference
             return Result<byte[]>.Success(encryptedEnvelope);
