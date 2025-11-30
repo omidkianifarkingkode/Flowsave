@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using FlowSave.Runtime.Operations.Storage;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -68,12 +69,12 @@ namespace FlowSave.Storage
         public Task<Result<byte[]>> LoadAsync(string key)
         {
             if (key == null)
-                return Result<byte[]>.Failure("Key is null.").ToTask();
+                return StorageErrors.KeyNullBytes.ToTask();
 
             try
             {
                 if (!HasKey(key))
-                    return Result<byte[]>.Failure($"Key not found: {key}").ToTask();
+                    return StorageErrors.KeyNotFound(key, StorageErrors.PlayerPrefsModule).ToTask();
 
                 int count = GetCount(key);
                 if (count <= 0)
@@ -85,7 +86,7 @@ namespace FlowSave.Storage
                         return Result<byte[]>.Success(legacy).ToTask();
                     }
 
-                    return Result<byte[]>.Failure($"Corrupt PlayerPrefs entry for key: {key}").ToTask();
+                    return StorageErrors.CorruptEntry(key).ToTask();
                 }
 
                 var sb = new StringBuilder(count * _chunkChars);
@@ -99,14 +100,14 @@ namespace FlowSave.Storage
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure($"PlayerPrefs load failed: {ex.Message}").ToTask();
+                return StorageErrors.LoadFailed(ex.Message, StorageErrors.PlayerPrefsModule).ToTask();
             }
         }
 
         public Task<Result> DeleteAsync(string key)
         {
             if (key == null)
-                return Result.Failure("Key is null.").ToTask();
+                return StorageErrors.KeyNullResult.ToTask();
 
             try
             {
@@ -126,14 +127,14 @@ namespace FlowSave.Storage
             }
             catch (Exception ex)
             {
-                return Result.Failure($"PlayerPrefs delete failed: {ex.Message}").ToTask();
+                return StorageErrors.DeleteFailed(ex.Message, StorageErrors.PlayerPrefsModule).ToTask();
             }
         }
 
         public Task<Result<bool>> ExistsAsync(string key)
         {
             if (key == null)
-                return Result<bool>.Failure("Key is null.").ToTask();
+                return StorageErrors.KeyNullBool.ToTask();
 
             try
             {
@@ -142,7 +143,7 @@ namespace FlowSave.Storage
             }
             catch (Exception ex)
             {
-                return Result<bool>.Failure($"PlayerPrefs exists check failed: {ex.Message}").ToTask();
+                return StorageErrors.ExistsFailed(ex.Message, StorageErrors.PlayerPrefsModule).ToTask();
             }
         }
 

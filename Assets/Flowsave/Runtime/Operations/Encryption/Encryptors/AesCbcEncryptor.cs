@@ -34,7 +34,7 @@ namespace FlowSave.Encryption
         public Result<byte[]> Encrypt(byte[] plaintext)
         {
             if (plaintext == null)
-                return Result<byte[]>.Failure("Plaintext is null.");
+                return EncryptionErrors.PlaintextNull;
 
             try
             {
@@ -66,7 +66,7 @@ namespace FlowSave.Encryption
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure($"AES-CBC encrypt failed: {ex.Message}");
+                return EncryptionErrors.EncryptFailed(ex.Message);
             }
         }
 
@@ -75,18 +75,18 @@ namespace FlowSave.Encryption
         public Result<byte[]> Decrypt(byte[] env)
         {
             if (env == null)
-                return Result<byte[]>.Failure("Encrypted envelope is null.");
+                return EncryptionErrors.EncryptedEnvelopeNull;
 
             try
             {
                 if (env.Length < 1 + IvSize)
-                    return Result<byte[]>.Failure("Envelope is too small.");
+                    return EncryptionErrors.EnvelopeTooSmall;
 
                 int offset = 0;
 
                 EncryptionType alg = (EncryptionType)env[offset++];
                 if (alg != Alg)
-                    return Result<byte[]>.Failure($"Wrong algorithm. Expected {Alg}, got {alg}");
+                    return EncryptionErrors.WrongAlgorithm(Alg, alg);
 
                 byte[] iv = new byte[IvSize];
                 Buffer.BlockCopy(env, offset, iv, 0, iv.Length);
@@ -94,7 +94,7 @@ namespace FlowSave.Encryption
 
                 byte[] cipher = new byte[env.Length - offset];
                 if (cipher.Length == 0)
-                    return Result<byte[]>.Failure("Ciphertext is empty.");
+                    return EncryptionErrors.CiphertextEmpty;
 
                 Buffer.BlockCopy(env, offset, cipher, 0, cipher.Length);
 
@@ -115,11 +115,11 @@ namespace FlowSave.Encryption
             }
             catch (CryptographicException ex)
             {
-                return Result<byte[]>.Failure("AES-CBC decryption failed (wrong key or corrupted data): " + ex.Message);
+                return EncryptionErrors.DecryptCryptoFailed(ex.Message);
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure("AES-CBC decrypt failed: " + ex.Message);
+                return EncryptionErrors.DecryptFailed(ex.Message);
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿#if FLOWSAVE_LZ4
 
 using System;
+using FlowSave.Compression;
 
 namespace Flowsave.Compression
 {
@@ -16,7 +17,7 @@ namespace Flowsave.Compression
         public Result<byte[]> Compress(byte[] data)
         {
             if (data == null)
-                return Result<byte[]>.Failure("Data is null.");
+                return CompressionErrors.DataNull;
 
             try
             {
@@ -26,14 +27,14 @@ namespace Flowsave.Compression
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure(ex.Message);
+                return CompressionErrors.CompressFailed(ex.Message, CompressionErrors.Lz4Module);
             }
         }
 
         public Result<byte[]> Decompress(byte[] data)
         {
             if (data == null)
-                return Result<byte[]>.Failure("Data is null.");
+                return CompressionErrors.DataNull;
 
             try
             {
@@ -42,7 +43,7 @@ namespace Flowsave.Compression
             }
             catch (Exception ex)
             {
-                return Result<byte[]>.Failure(ex.Message);
+                return CompressionErrors.DecompressFailed(ex.Message, CompressionErrors.Lz4Module);
             }
         }
     }
