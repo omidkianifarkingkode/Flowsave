@@ -10,10 +10,10 @@ namespace FlowSave.Compression
 
         public static readonly Result<byte[]> DataNull = Result<byte[]>.Failure($"{CompressionPrefix}Data is null.");
 
-        public static Result<byte[]> CompressFailed(string message, string? prefix = null)
+        public static Result<byte[]> CompressFailed(string message, string prefix = null)
             => Result<byte[]>.Failure($"{prefix ?? CompressionPrefix}Compress failed: {message}");
 
-        public static Result<byte[]> DecompressFailed(string message, string? prefix = null)
+        public static Result<byte[]> DecompressFailed(string message, string prefix = null)
             => Result<byte[]>.Failure($"{prefix ?? CompressionPrefix}Decompress failed: {message}");
 
         public static string BrotliModule => BrotliPrefix;

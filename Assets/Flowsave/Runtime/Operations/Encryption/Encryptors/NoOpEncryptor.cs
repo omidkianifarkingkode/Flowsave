@@ -6,6 +6,7 @@ namespace FlowSave.Encryption
     {
         public EncryptionType Alg => EncryptionType.None;
         public bool IsNoOp => true;
+        public string KeyId => string.Empty;
 
         public Result<byte[]> Encrypt(byte[] plaintext)
         {

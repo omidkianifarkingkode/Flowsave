@@ -1,4 +1,4 @@
-using Flowsave.KeyStorage;
+using FlowSave.KeyStorage;
 using FlowSave.Compression;
 using FlowSave.Configurations;
 using FlowSave.Encryption;

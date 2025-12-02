@@ -1,4 +1,4 @@
-﻿namespace Flowsave.Codec
+﻿namespace FlowSave.Codec
 {
     public sealed class SignatureBlock
     {

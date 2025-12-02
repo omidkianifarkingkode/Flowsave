@@ -17,6 +17,9 @@ namespace FlowSave
         /// <summary>Loads a typed object using the configured serializer + pipeline.</summary>
         Task<Result<T>> LoadAsync<T>(string namespaceId);
 
+
+        Task<Result<T[]>> LoadAllAsync<T>(string namespaceId);
+
         /// <summary>Checks if a save exists for the given namespace.</summary>
         Task<Result<bool>> HasSaveAsync(string namespaceId);
 

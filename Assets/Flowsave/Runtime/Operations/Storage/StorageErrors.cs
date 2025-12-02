@@ -15,19 +15,19 @@ namespace FlowSave.Storage
         public static readonly Result KeyRequiredResult = Result.Failure($"{StoragePrefix}Key is required.");
         public static readonly Result DataNull = Result.Failure($"{StoragePrefix}Data is null.");
 
-        public static Result<byte[]> KeyNotFound(string key, string? prefix = null)
+        public static Result<byte[]> KeyNotFound(string key, string prefix = null)
             => Result<byte[]>.Failure($"{prefix ?? StoragePrefix}Key not found: {key}");
 
-        public static Result<byte[]> LoadFailed(string message, string? prefix = null)
+        public static Result<byte[]> LoadFailed(string message, string prefix = null)
             => Result<byte[]>.Failure($"{prefix ?? StoragePrefix}Load failed: {message}");
 
-        public static Result SaveFailed(string message, string? prefix = null)
+        public static Result SaveFailed(string message, string prefix = null)
             => Result.Failure($"{prefix ?? StoragePrefix}Save failed: {message}");
 
-        public static Result<bool> ExistsFailed(string message, string? prefix = null)
+        public static Result<bool> ExistsFailed(string message, string prefix = null)
             => Result<bool>.Failure($"{prefix ?? StoragePrefix}Exists check failed: {message}");
 
-        public static Result DeleteFailed(string message, string? prefix = null)
+        public static Result DeleteFailed(string message, string prefix = null)
             => Result.Failure($"{prefix ?? StoragePrefix}Delete failed: {message}");
 
         public static Result<byte[]> FileTooLarge(long length)

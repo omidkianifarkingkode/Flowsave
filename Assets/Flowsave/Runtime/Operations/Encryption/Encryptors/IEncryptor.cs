@@ -6,6 +6,7 @@ namespace FlowSave.Encryption
     {
         EncryptionType Alg { get; }
         bool IsNoOp { get; }
+        string KeyId { get; }
 
 
         /// <summary>Encrypts plaintext and returns an envelope (nonce+tag+ciphertext, or whatever format).</summary>

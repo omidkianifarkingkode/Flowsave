@@ -26,6 +26,18 @@ namespace FlowSave.Encryption
             };
         }
 
+        internal IEncryptor CreateEncryptor(EncryptionType encryptionType, string keyId)
+        {
+            return encryptionType switch
+            {
+                EncryptionType.None => new NoOpEncryptor(),
+                EncryptionType.Aes128Cbc => CreateAesEncryptor(keyId),
+                EncryptionType.Aes256Cbc => CreateAesEncryptor(keyId),
+                _ => throw new NotSupportedException(
+                    $"The specified crypto algorithm '{encryptionType}' is not supported."),
+            };
+        }
+
         private IEncryptor CreateAesEncryptor(string keyId)
         {
             var def = _keys.GetAesDefinition(keyId);

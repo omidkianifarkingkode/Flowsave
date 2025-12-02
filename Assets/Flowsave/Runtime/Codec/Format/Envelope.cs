@@ -1,7 +1,7 @@
 ﻿using FlowSave.Serialization;
 using System.Collections.Generic;
 
-namespace Flowsave.Codec
+namespace FlowSave.Codec
 {
     public sealed class Envelope
     {

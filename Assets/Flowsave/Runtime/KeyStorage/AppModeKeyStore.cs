@@ -2,7 +2,7 @@
 using FlowSave.KeyStorage;
 using System;
 
-namespace Flowsave.KeyStorage
+namespace FlowSave.KeyStorage
 {
     [Serializable]
     public class AppModeKeyStore

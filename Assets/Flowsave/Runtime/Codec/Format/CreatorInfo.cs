@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Flowsave.Codec
+namespace FlowSave.Codec
 {
     public sealed class CreatorInfo
     {

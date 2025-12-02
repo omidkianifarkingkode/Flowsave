@@ -10,11 +10,16 @@ namespace FlowSave.Encryption
 
         public EncryptionType Alg { get; }
         public bool IsNoOp => false;
+        public string KeyId { get; }
 
         private const int IvSize = 16; // AES block size
 
-        public AesCbcEncryptor(byte[] key)
+        public AesCbcEncryptor(KeyDefinition def)
         {
+            var key = KeyRuntime.ResolveAesKey(def);
+
+            KeyId = def.KeyId;
+
             if (key is null || (key.Length != 16 && key.Length != 32))
                 throw new ArgumentException("AES key must be 16 or 32 bytes", nameof(key));
 
@@ -22,10 +27,6 @@ namespace FlowSave.Encryption
 
             Alg = key.Length == 32 ? EncryptionType.Aes256Cbc : EncryptionType.Aes128Cbc;
         }
-
-        public AesCbcEncryptor(KeyDefinition def) : this(KeyRuntime.ResolveAesKey(def)) { }
-
-        public AesCbcEncryptor(AesOptions opts) : this(opts.Key) { }
 
         // ============================================================
 

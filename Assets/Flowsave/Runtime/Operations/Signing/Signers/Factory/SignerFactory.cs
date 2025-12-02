@@ -25,6 +25,17 @@ namespace FlowSave.Signing
             };
         }
 
+        public ISigner CreateSigner(SigningType signAlg, string keyId)
+        {
+            return signAlg switch
+            {
+                SigningType.None => new NoOpSigner(),
+                SigningType.Hmac => CreateHmacSigner(keyId),
+                _ => throw new InvalidOperationException(
+                    $"Unsupported signing algorithm: {signAlg}")
+            };
+        }
+
         private ISigner CreateHmacSigner(string keyId)
         {
             var def = _keys.GetHmacDefinition(keyId);

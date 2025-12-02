@@ -8,30 +8,70 @@ namespace FlowSave.Signing
     public sealed class HmacSha256Signer : ISigner
     {
         private readonly byte[] _key;
-        private readonly string _keyId;
         private readonly int _truncateBytes;
 
         public SigningType Alg => SigningType.Hmac;
         public bool IsNoOp => false;
+        public string KeyId { get; }
 
-        public HmacSha256Signer(byte[] key, string keyId, int truncateBytes = 0)
+        public HmacSha256Signer(KeyDefinition def)
         {
+            var key = KeyRuntime.ResolveHmacKey(def, out var keyId, out var truncateBytes);
+
             if (key == null || key.Length == 0)
                 throw new ArgumentException("HMAC key cannot be null or empty.");
 
             _key = (byte[])key.Clone();
-            _keyId = keyId ?? string.Empty;
+            KeyId = keyId ?? string.Empty;
             _truncateBytes = truncateBytes;
         }
 
-        public HmacSha256Signer(KeyDefinition def)
-            : this(KeyRuntime.ResolveHmacKey(def, out var id, out var trunc), id, trunc) { }
+        // --------------------------------------------------------------------
+        // NEW: Detached signature methods
+        // --------------------------------------------------------------------
+        public Result<byte[]> ComputeSignature(byte[] payload)
+        {
+            if (payload == null)
+                return Result<byte[]>.Failure("Payload is null.");
 
-        public HmacSha256Signer(HmacOptions opts)
-            : this(opts.Key, opts.KeyId, opts.TruncateTo == HmacTruncate.None ? 0 : (int)opts.TruncateTo) { }
+            try
+            {
+                var sig = ComputeSignatureCore(payload);
+                return Result<byte[]>.Success(sig);
+            }
+            catch (Exception ex)
+            {
+                return Result<byte[]>.Failure($"HMAC compute signature failed: {ex.Message}");
+            }
+        }
+
+        public Result VerifySignature(byte[] payload, byte[] signature)
+        {
+            if (payload == null)
+                return Result.Failure("Payload is null.");
+            if (signature == null)
+                return Result.Failure("Signature is null.");
+
+            try
+            {
+                var expected = ComputeSignatureCore(payload);
+
+                if (expected.Length != signature.Length)
+                    return Result.Failure("Signature length mismatch.");
+
+                if (!CryptographicOperations.FixedTimeEquals(expected, signature))
+                    return Result.Failure("Signature invalid.");
+
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"HMAC verify signature failed: {ex.Message}");
+            }
+        }
 
         // --------------------------------------------------------------------
-        // SIGN
+        // LEGACY: envelope-style Sign/Verify (unchanged behavior)
         // --------------------------------------------------------------------
         public Result<byte[]> Sign(byte[] payload)
         {
@@ -40,9 +80,9 @@ namespace FlowSave.Signing
 
             try
             {
-                var signature = ComputeSignature(payload);
+                var signature = ComputeSignatureCore(payload);
 
-                byte[] keyIdBytes = Encoding.UTF8.GetBytes(_keyId);
+                byte[] keyIdBytes = Encoding.UTF8.GetBytes(KeyId);
                 if (keyIdBytes.Length > 255)
                     return Result<byte[]>.Failure("SignerId too long (max 255 bytes).");
 
@@ -85,9 +125,6 @@ namespace FlowSave.Signing
             }
         }
 
-        // --------------------------------------------------------------------
-        // VERIFY
-        // --------------------------------------------------------------------
         public Result<byte[]> Verify(byte[] signedEnvelope)
         {
             if (signedEnvelope == null)
@@ -113,7 +150,7 @@ namespace FlowSave.Signing
                 var signerId = Encoding.UTF8.GetString(signedEnvelope, offset, keyIdLen);
                 offset += keyIdLen;
 
-                if (signerId != _keyId)
+                if (signerId != KeyId)
                     return Result<byte[]>.Failure("SignerId mismatch.");
 
                 // payload length
@@ -145,14 +182,10 @@ namespace FlowSave.Signing
                 byte[] sig = new byte[sigLen];
                 Buffer.BlockCopy(signedEnvelope, offset, sig, 0, sigLen);
 
-                // recompute signature
-                var expected = ComputeSignature(payload);
-
-                if (expected.Length != sig.Length)
-                    return Result<byte[]>.Failure("Signature length mismatch.");
-
-                if (!CryptographicOperations.FixedTimeEquals(expected, sig))
-                    return Result<byte[]>.Failure("Signature invalid.");
+                // verify using detached API
+                var verifyResult = VerifySignature(payload, sig);
+                if (!verifyResult.IsSuccess)
+                    return Result<byte[]>.Failure(verifyResult.Error);
 
                 return Result<byte[]>.Success(payload);
             }
@@ -163,7 +196,9 @@ namespace FlowSave.Signing
         }
 
         // --------------------------------------------------------------------
-        private byte[] ComputeSignature(byte[] payload)
+        // Internal raw HMAC computation
+        // --------------------------------------------------------------------
+        private byte[] ComputeSignatureCore(byte[] payload)
         {
             using var hmac = new HMACSHA256(_key);
             var full = hmac.ComputeHash(payload);

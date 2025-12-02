@@ -60,6 +60,26 @@ namespace FlowSave
             return await pipeline.ExecuteReadAsync().ConfigureAwait(false);
         }
 
+        public async Task<Result<T[]>> LoadAllAsync<T>(string namespaceId)
+        {
+            if (string.IsNullOrWhiteSpace(namespaceId))
+                return Result<T[]>.Failure("Namespace id is required.");
+
+            var env = _config.GetEnvironmentConfiguration(namespaceId);
+            if (env == null)
+                return Result<T[]>.Failure($"No environment configuration found for namespace '{namespaceId}'.");
+
+            if (!(env.StorageOptions?.DiskStorage?.Append ?? false))
+                return Result<T[]>.Failure($"Namespace '{namespaceId}' is not configured for append mode.");
+
+            var keyStore = _config.GetKeyStoreForEnvironment(env);
+
+            // Build the same append read-all lambda we used above (you can share helper)
+            var readAll = FlowOperationPipeline<T>.CreateAppendReadAll(env, keyStore, namespaceId);
+            return await readAll().ConfigureAwait(false);
+        }
+
+
         public async Task<Result<bool>> HasSaveAsync(string namespaceId)
         {
             if (string.IsNullOrWhiteSpace(namespaceId))

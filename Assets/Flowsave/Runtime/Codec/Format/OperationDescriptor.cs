@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using FlowSave.Operations;
+using System.Collections.Generic;
 
-namespace Flowsave.Codec
+namespace FlowSave.Codec
 {
     public sealed class OperationDescriptor
     {
         // e.g. "compress", "encrypt"
-        public string Kind { get; set; }
+        public OperationMode Kind { get; set; }
 
         // e.g. "lz4", "aes-gcm"
         public string AlgorithmId { get; set; }

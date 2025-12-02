@@ -1,4 +1,4 @@
-﻿using Flowsave.Codec;
+﻿using FlowSave.Operations;
 using FlowSave.Serialization;
 using System;
 using System.Collections.Generic;
@@ -7,20 +7,96 @@ using System.Text;
 
 namespace FlowSave.Codec
 {
+    public static class EnvelopeConstants
+    {
+        // 'F','S','V','1' in little endian -> you'll see "1VSF" in a text viewer
+        public const uint FileSignature = 0x31565346; // 'F' 'S' 'V' '1'
+        public const byte CurrentEnvelopeVersion = 1;
+    }
+
     public sealed class BinaryEnvelopeCodec : IEnvelopeCodec
     {
         public Result<byte[]> Encode(Envelope envelope)
         {
+            if (envelope == null)
+                return Result<byte[]>.Failure("Envelope is null.");
+
             try
             {
-                if (envelope == null)
-                    return Result<byte[]>.Failure("Envelope is null.");
-
                 using var ms = new MemoryStream();
-                using var writer = new BinaryWriter(ms, Encoding.UTF8, leaveOpen: true);
+                using (var bw = new BinaryWriter(ms, Encoding.UTF8, leaveOpen: true))
+                {
+                    // --- Header / identity ---
+                    bw.Write(EnvelopeConstants.FileSignature);    // uint
+                    bw.Write(envelope.EnvelopeVersion);           // byte
 
-                WriteEnvelope(writer, envelope);
-                writer.Flush();
+                    WriteString(bw, envelope.NamespaceId);
+                    bw.Write(envelope.DataVersion);
+
+                    bw.Write((byte)envelope.PayloadFormat);       // SerializationType as byte
+
+                    // --- Creator ---
+                    if (envelope.Creator != null)
+                    {
+                        bw.Write(true); // hasCreator
+                        WriteCreator(bw, envelope.Creator);
+                    }
+                    else
+                    {
+                        bw.Write(false); // hasCreator = false
+                    }
+
+                    // --- Operations ---
+                    if (envelope.Operations != null && envelope.Operations.Count > 0)
+                    {
+                        bw.Write(envelope.Operations.Count);
+                        foreach (var op in envelope.Operations)
+                        {
+                            bw.Write((byte)op.Kind); // OperationMode as byte
+                            WriteString(bw, op.AlgorithmId);
+                            WriteString(bw, op.KeyId);
+
+                            if (op.Parameters != null && op.Parameters.Count > 0)
+                            {
+                                bw.Write(op.Parameters.Count);
+                                foreach (var kv in op.Parameters)
+                                {
+                                    WriteString(bw, kv.Key);
+                                    WriteString(bw, kv.Value);
+                                }
+                            }
+                            else
+                            {
+                                bw.Write(0); // no parameters
+                            }
+                        }
+                    }
+                    else
+                    {
+                        bw.Write(0); // operations count
+                    }
+
+                    // --- Signature ---
+                    if (envelope.Signature != null && envelope.Signature.Value != null)
+                    {
+                        bw.Write(true); // hasSignature
+                        WriteString(bw, envelope.Signature.AlgorithmId);
+                        WriteString(bw, envelope.Signature.KeyId);
+
+                        var sig = envelope.Signature.Value;
+                        bw.Write(sig.Length);
+                        bw.Write(sig);
+                    }
+                    else
+                    {
+                        bw.Write(false); // hasSignature = false
+                    }
+
+                    // --- Payload ---
+                    var payload = envelope.Payload ?? Array.Empty<byte>();
+                    bw.Write(payload.Length);
+                    bw.Write(payload);
+                }
 
                 return Result<byte[]>.Success(ms.ToArray());
             }
@@ -32,16 +108,127 @@ namespace FlowSave.Codec
 
         public Result<Envelope> Decode(byte[] data)
         {
+            if (data == null)
+                return Result<Envelope>.Failure("Data is null.");
+
             try
             {
-                if (data == null)
-                    return Result<Envelope>.Failure("Data is null.");
-
                 using var ms = new MemoryStream(data);
-                using var reader = new BinaryReader(ms, Encoding.UTF8, leaveOpen: true);
+                using var br = new BinaryReader(ms, Encoding.UTF8, leaveOpen: true);
 
-                var env = ReadEnvelope(reader);
+                // --- Header / identity ---
+                var sig = br.ReadUInt32();
+                if (sig != EnvelopeConstants.FileSignature)
+                    return Result<Envelope>.Failure("Invalid envelope file signature.");
+
+                var envVersion = br.ReadByte();
+                if (envVersion > EnvelopeConstants.CurrentEnvelopeVersion)
+                    return Result<Envelope>.Failure($"Unsupported envelope version: {envVersion}");
+
+                var nsId = ReadString(br);
+                var dataVersion = br.ReadInt32();
+
+                var payloadFormatByte = br.ReadByte();
+                var payloadFormat = (SerializationType)payloadFormatByte;
+
+                // --- Creator ---
+                CreatorInfo creator = null;
+                bool hasCreator = br.ReadBoolean();
+                if (hasCreator)
+                {
+                    creator = ReadCreator(br);
+                }
+
+                // --- Operations ---
+                var operations = new List<OperationDescriptor>();
+                int opCount = br.ReadInt32();
+                if (opCount < 0)
+                    return Result<Envelope>.Failure("Negative operations count.");
+
+                for (int i = 0; i < opCount; i++)
+                {
+                    var kindByte = br.ReadByte();
+                    var kind = (OperationMode)kindByte;
+
+                    var algId = ReadString(br);
+                    var keyId = ReadString(br);
+
+                    int paramCount = br.ReadInt32();
+                    if (paramCount < 0)
+                        return Result<Envelope>.Failure("Negative operation parameter count.");
+
+                    Dictionary<string, string> parameters = null;
+                    if (paramCount > 0)
+                    {
+                        parameters = new Dictionary<string, string>(paramCount);
+                        for (int p = 0; p < paramCount; p++)
+                        {
+                            var k = ReadString(br);
+                            var v = ReadString(br);
+                            parameters[k] = v;
+                        }
+                    }
+
+                    operations.Add(new OperationDescriptor
+                    {
+                        Kind = kind,
+                        AlgorithmId = algId,
+                        KeyId = keyId,
+                        Parameters = parameters
+                    });
+                }
+
+                // --- Signature ---
+                SignatureBlock signature = null;
+                bool hasSignature = br.ReadBoolean();
+                if (hasSignature)
+                {
+                    var algId = ReadString(br);
+                    var keyId = ReadString(br);
+
+                    int sigLen = br.ReadInt32();
+                    if (sigLen < 0 || sigLen > ms.Length - ms.Position)
+                        return Result<Envelope>.Failure("Invalid signature length in envelope.");
+
+                    var sigBytes = br.ReadBytes(sigLen);
+                    if (sigBytes.Length != sigLen)
+                        return Result<Envelope>.Failure("Truncated signature bytes in envelope.");
+
+                    signature = new SignatureBlock
+                    {
+                        AlgorithmId = algId,
+                        KeyId = keyId,
+                        Value = sigBytes
+                    };
+                }
+
+                // --- Payload ---
+                int payloadLen = br.ReadInt32();
+                if (payloadLen < 0 || payloadLen > ms.Length - ms.Position)
+                    return Result<Envelope>.Failure("Invalid payload length in envelope.");
+
+                var payload = br.ReadBytes(payloadLen);
+                if (payload.Length != payloadLen)
+                    return Result<Envelope>.Failure("Truncated payload in envelope.");
+
+                var env = new Envelope
+                {
+                    FileSignature = sig,
+                    EnvelopeVersion = envVersion,
+                    NamespaceId = nsId,
+                    DataVersion = dataVersion,
+                    PayloadFormat = payloadFormat,
+                    Creator = creator,
+                    Operations = operations,
+                    Signature = signature,
+                    Payload = payload
+                };
+
                 return Result<Envelope>.Success(env);
+            }
+            catch (EndOfStreamException eos)
+            {
+                return Result<Envelope>.Failure($"Binary decode failed: {eos.Message}");
             }
             catch (Exception ex)
             {
@@ -49,187 +236,58 @@ namespace FlowSave.Codec
             }
         }
 
-        // ----------------- write -----------------
+        // ------------------------------------------------------------
+        // Helpers
+        // ------------------------------------------------------------
 
-        private static void WriteEnvelope(BinaryWriter w, Envelope e)
-        {
-            w.Write(EnvelopeConstants.FileSignature);
-            w.Write(EnvelopeConstants.CurrentEnvelopeVersion);
-
-            WriteString(w, e.NamespaceId);
-            w.Write(e.DataVersion);
-
-            w.Write((byte)e.PayloadFormat);
-
-            // Creator
-            if (e.Creator != null)
-            {
-                w.Write(true);
-                w.Write(e.Creator.CreatedAtUtc.Ticks);
-                w.Write(e.Creator.UpdatedAtUtc.Ticks);
-                WriteString(w, e.Creator.AppVersion);
-                WriteString(w, e.Creator.BuildId);
-                WriteString(w, e.Creator.DeviceId);
-            }
-            else
-            {
-                w.Write(false);
-            }
-
-            // Operations
-            var ops = e.Operations ?? new List<OperationDescriptor>();
-            w.Write(ops.Count);
-            foreach (var op in ops)
-            {
-                WriteString(w, op.Kind);
-                WriteString(w, op.AlgorithmId);
-                WriteString(w, op.KeyId);
-
-                var parameters = op.Parameters ?? new Dictionary<string, string>();
-                w.Write(parameters.Count);
-                foreach (var kv in parameters)
-                {
-                    WriteString(w, kv.Key);
-                    WriteString(w, kv.Value);
-                }
-            }
-
-            // Signature
-            if (e.Signature != null)
-            {
-                w.Write(true);
-                WriteString(w, e.Signature.AlgorithmId);
-                WriteString(w, e.Signature.KeyId);
-
-                var value = e.Signature.Value ?? Array.Empty<byte>();
-                w.Write(value.Length);
-                w.Write(value);
-            }
-            else
-            {
-                w.Write(false);
-            }
-
-            // Payload
-            var payload = e.Payload ?? Array.Empty<byte>();
-            w.Write(payload.Length);
-            w.Write(payload);
-        }
-
-        // ----------------- read -----------------
-
-        private static Envelope ReadEnvelope(BinaryReader r)
-        {
-            var sig = r.ReadUInt32();
-            if (sig != EnvelopeConstants.FileSignature)
-                throw new InvalidDataException($"Invalid envelope signature: 0x{sig:X8}");
-
-            var version = r.ReadByte();
-            if (version != EnvelopeConstants.CurrentEnvelopeVersion)
-            {
-                // For now we only support v1. Later you can branch here.
-                throw new NotSupportedException($"Unsupported envelope version: {version}");
-            }
-
-            var env = new Envelope
-            {
-                FileSignature = sig,
-                EnvelopeVersion = version
-            };
-
-            env.NamespaceId = ReadString(r);
-            env.DataVersion = r.ReadInt32();
-
-            env.PayloadFormat = (SerializationType)r.ReadByte();
-
-            // Creator
-            if (r.ReadBoolean())
-            {
-                var creator = new CreatorInfo
-                {
-                    CreatedAtUtc = new DateTime(r.ReadInt64(), DateTimeKind.Utc),
-                    UpdatedAtUtc = new DateTime(r.ReadInt64(), DateTimeKind.Utc),
-                    AppVersion = ReadString(r),
-                    BuildId = ReadString(r),
-                    DeviceId = ReadString(r)
-                };
-                env.Creator = creator;
-            }
-
-            // Operations
-            int opCount = r.ReadInt32();
-            var ops = new List<OperationDescriptor>(opCount);
-            for (int i = 0; i < opCount; i++)
-            {
-                var op = new OperationDescriptor
-                {
-                    Kind = ReadString(r),
-                    AlgorithmId = ReadString(r),
-                    KeyId = ReadString(r),
-                    Parameters = ReadParameters(r)
-                };
-                ops.Add(op);
-            }
-            env.Operations = ops;
-
-            // Signature
-            if (r.ReadBoolean())
-            {
-                var sigBlock = new SignatureBlock
-                {
-                    AlgorithmId = ReadString(r),
-                    KeyId = ReadString(r)
-                };
-                int len = r.ReadInt32();
-                sigBlock.Value = r.ReadBytes(len);
-                env.Signature = sigBlock;
-            }
-
-            // Payload
-            int payloadLen = r.ReadInt32();
-            env.Payload = r.ReadBytes(payloadLen);
-
-            return env;
-        }
-
-        // ----------------- helpers -----------------
-
-        private static void WriteString(BinaryWriter w, string value)
+        private static void WriteString(BinaryWriter bw, string value)
         {
             if (value == null)
             {
-                w.Write((byte)0); // 0 length = null marker
+                bw.Write((byte)0); // isNull = 0
                 return;
             }
 
-            var bytes = Encoding.UTF8.GetBytes(value);
-            // store length as Int32; 0 reserved for null, so add 1
-            w.Write((int)(bytes.Length + 1));
-            w.Write(bytes);
+            bw.Write((byte)1); // isNull = 1
+            bw.Write(value);
         }
 
-        private static string ReadString(BinaryReader r)
+        private static string ReadString(BinaryReader br)
         {
-            int len = r.ReadInt32();
-            if (len == 0)
+            byte isNonNull = br.ReadByte();
+            if (isNonNull == 0)
                 return null;
 
-            int byteLen = len - 1;
-            var bytes = r.ReadBytes(byteLen);
-            return bytes.Length == 0 ? string.Empty : Encoding.UTF8.GetString(bytes);
+            return br.ReadString();
         }
 
-        private static Dictionary<string, string> ReadParameters(BinaryReader r)
+        private static void WriteCreator(BinaryWriter bw, CreatorInfo c)
         {
-            int count = r.ReadInt32();
-            var dict = new Dictionary<string, string>(count);
-            for (int i = 0; i < count; i++)
+            bw.Write(c.CreatedAtUtc.ToBinary());
+            bw.Write(c.UpdatedAtUtc.ToBinary());
+
+            WriteString(bw, c.AppVersion);
+            WriteString(bw, c.BuildId);
+            WriteString(bw, c.DeviceId);
+        }
+
+        private static CreatorInfo ReadCreator(BinaryReader br)
+        {
+            var createdTicks = br.ReadInt64();
+            var updatedTicks = br.ReadInt64();
+
+            var appVersion = ReadString(br);
+            var buildId = ReadString(br);
+            var deviceId = ReadString(br);
+
+            return new CreatorInfo
             {
-                var key = ReadString(r);
-                var value = ReadString(r);
-                dict[key] = value;
-            }
-            return dict;
+                CreatedAtUtc = DateTime.FromBinary(createdTicks),
+                UpdatedAtUtc = DateTime.FromBinary(updatedTicks),
+                AppVersion = appVersion,
+                BuildId = buildId,
+                DeviceId = deviceId
+            };
         }
     }
 }

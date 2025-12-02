@@ -1,4 +1,4 @@
-﻿using Flowsave.Codec;
+﻿using FlowSave.Codec;
 using FlowSave.Codec;
 using FlowSave.Compression;
 using FlowSave.Configurations;
@@ -9,6 +9,7 @@ using FlowSave.Signing;
 using FlowSave.Storage;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using CompressionType = FlowSave.Compression.CompressionType;
@@ -44,6 +45,9 @@ namespace FlowSave.Operations.Builder
 
             if (string.IsNullOrWhiteSpace(logicalKey))
                 throw new ArgumentException("Logical key is required.", nameof(logicalKey));
+
+            if (env.StorageOptions.StorageType == StorageType.FileSystem && env.StorageOptions.DiskStorage.Append == true)
+                return CreateAppendWritePipeline(env, keyStore, logicalKey);
 
             // 1. Serializer (T -> Result<byte[]>)
             var serializerFactory = new SerializerFactory(env.SerializationOptions);
@@ -98,27 +102,24 @@ namespace FlowSave.Operations.Builder
         /// Builds a full READ pipeline from the given environment:
         /// storage -> (verify) -> (decrypt) -> decompress -> deserialize -> T.
         /// </summary>
-        public static FlowOperationPipeline<T> CreateReadPipeline(
-            EnvironmentConfiguration env, KeyStoreOptions keyStore, string logicalKey)
+        public static FlowOperationPipeline<T> CreateReadPipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore, string logicalKey)
         {
             if (env == null)
                 throw new ArgumentNullException(nameof(env));
             if (string.IsNullOrWhiteSpace(logicalKey))
                 throw new ArgumentException("Logical key is required.", nameof(logicalKey));
 
-            // 1. Serializer
-            var serializerFactory = new SerializerFactory(env.SerializationOptions);
-            var serializer = serializerFactory.CreateSerializer(env.SerializationOptions.SerializationType);
-            Result<T> Deserialize(byte[] bytes) => serializer.Deserialize<T>(bytes);
+            if (env.StorageOptions.StorageType == StorageType.FileSystem && env.StorageOptions.DiskStorage.Append == true)
+                return CreateAppendReadPipeline(env, keyStore, logicalKey);
 
-            // 2. Storage
+            // 1. Storage
             var storageFactory = new StorageProviderFactory(env.StorageOptions);
             var storage = storageFactory.CreateStorageProvider(env.StorageOptions.StorageType);
 
-            // 3. Envelope codec
+            // 2. Envelope codec
             var envelopeCodec = CreateEnvelopeCodec(env);
 
-            // 4. Payload pipeline (verify/decrypt/decompress)
+            // 3. Payload pipeline (verify/decrypt/decompress) – now envelope-driven
             var payloadPipeline = BuildReadPayloadPipeline(env, keyStore);
 
             async Task<Result<T>> ReadAsync()
@@ -135,15 +136,18 @@ namespace FlowSave.Operations.Builder
 
                 var envelope = decResult.Value;
 
-                // process payload bytes
+                // process payload bytes according to envelope.Operations
                 var opsResult = await payloadPipeline(envelope).ConfigureAwait(false);
                 if (!opsResult.IsSuccess)
                     return Result<T>.Failure(opsResult.Error);
 
                 envelope = opsResult.Value;
 
-                // deserialize
-                var deserResult = Deserialize(envelope.Payload);
+                // 4. Deserialize using envelope.PayloadFormat, not env.SerializationOptions
+                var serializerFactory = new SerializerFactory(env.SerializationOptions);
+                var serializer = serializerFactory.CreateSerializer(envelope.PayloadFormat);
+
+                var deserResult = serializer.Deserialize<T>(envelope.Payload);
                 if (!deserResult.IsSuccess)
                     return Result<T>.Failure(deserResult.Error);
 
@@ -153,27 +157,78 @@ namespace FlowSave.Operations.Builder
             return new FlowOperationPipeline<T>(writePath: null, readPath: ReadAsync);
         }
 
-
-        // ------------------------------------------------------------
-        //  INTERNAL HELPERS: CHAINING
-        // ------------------------------------------------------------
-
-        private static ByteStep Chain(ByteStep current, ByteStep next)
+        public static Func<Task<Result<T[]>>> CreateAppendReadAll(EnvironmentConfiguration env, KeyStoreOptions keyStore, string logicalKey)
         {
-            if (current == null) return next;
-
-            return async bytes =>
+            return async () =>
             {
-                var res = await current(bytes).ConfigureAwait(false);
-                if (!res.IsSuccess)
-                    return res;
+                var storageFactory = new StorageProviderFactory(env.StorageOptions);
+                var storage = storageFactory.CreateStorageProvider(env.StorageOptions.StorageType);
 
-                return await next(res.Value).ConfigureAwait(false);
+                var load = await storage.LoadAsync(logicalKey).ConfigureAwait(false);
+                if (!load.IsSuccess)
+                    return Result<T[]>.Failure(load.Error);
+
+                var buffer = load.Value;
+                int offset = 0;
+
+                // 1) Header
+                if (buffer.Length < 4)
+                    return Result<T[]>.Failure("Append log too small (missing header length).");
+
+                int headerLen = BitConverter.ToInt32(buffer, offset);
+                offset += 4;
+
+                if (buffer.Length < offset + headerLen)
+                    return Result<T[]>.Failure("Append log truncated (header).");
+
+                var headerBytes = new byte[headerLen];
+                Buffer.BlockCopy(buffer, offset, headerBytes, 0, headerLen);
+                offset += headerLen;
+
+                var codec = CreateEnvelopeCodec(env);
+                var headerResult = codec.Decode(headerBytes);
+                if (!headerResult.IsSuccess)
+                    return Result<T[]>.Failure(headerResult.Error);
+
+                var headerEnv = headerResult.Value;
+                // Optionally: validate headerEnv.Operations vs env.Operations
+
+                // 2) Build byte pipeline for READ (legacy-style)
+                var bytePipe = BuildReadBytesPipeline(env, keyStore);
+
+                // 3) Serializer (use headerEnv.PayloadFormat, same as top-level)
+                var serializerFactory = new SerializerFactory(env.SerializationOptions);
+                var serializer = serializerFactory.CreateSerializer(headerEnv.PayloadFormat);
+
+                var list = new List<T>();
+
+                while (offset + 4 <= buffer.Length)
+                {
+                    int recLen = BitConverter.ToInt32(buffer, offset);
+                    offset += 4;
+
+                    if (recLen <= 0 || offset + recLen > buffer.Length)
+                        return Result<T[]>.Failure("Append log truncated (record).");
+
+                    var recBytes = new byte[recLen];
+                    Buffer.BlockCopy(buffer, offset, recBytes, 0, recLen);
+                    offset += recLen;
+
+                    // signedEnvelope -> verify -> decrypt -> decompress
+                    var pipe = await bytePipe(recBytes).ConfigureAwait(false);
+                    if (!pipe.IsSuccess)
+                        return Result<T[]>.Failure(pipe.Error);
+
+                    var des = serializer.Deserialize<T>(pipe.Value);
+                    if (!des.IsSuccess)
+                        return Result<T[]>.Failure(des.Error);
+
+                    list.Add(des.Value);
+                }
+
+                return Result<T[]>.Success(list.ToArray());
             };
         }
-
-        private static ByteStep IdentityStep =>
-            bytes => Task.FromResult(Result<byte[]>.Success(bytes));
 
         // ------------------------------------------------------------
         //  WRITE path (byte[] -> Result<byte[]>)
@@ -254,8 +309,6 @@ namespace FlowSave.Operations.Builder
 
         private static EnvelopeStep BuildWritePayloadPipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore)
         {
-            // We'll capture env + keystore & use the same logic as before,
-            // but now we also populate OperationDescriptor entries.
             return async envelope =>
             {
                 var ops = envelope.Operations ?? new List<OperationDescriptor>();
@@ -281,7 +334,7 @@ namespace FlowSave.Operations.Builder
 
                     ops.Add(new OperationDescriptor
                     {
-                        Kind = "compress",
+                        Kind = OperationMode.Compression,
                         AlgorithmId = env.CompressionOptions.CompressionType.ToString(),
                         KeyId = null,
                         Parameters = null
@@ -308,9 +361,9 @@ namespace FlowSave.Operations.Builder
 
                     ops.Add(new OperationDescriptor
                     {
-                        Kind = "encrypt",
+                        Kind = OperationMode.Encrypt,
                         AlgorithmId = env.EncryptionOptions.EncryptionType.ToString(),
-                        KeyId = env.EncryptionOptions.KeyId, // or wherever you store it
+                        KeyId = encryptor.KeyId,
                         Parameters = null // IV/nonce could go here if you expose it
                     });
                 }
@@ -329,36 +382,100 @@ namespace FlowSave.Operations.Builder
                     var signerFactory = new SignerFactory(env.SigningOptions, keyStore);
                     var signer = signerFactory.CreateSigner(env.SigningOptions.SigningType);
 
-                    var signResult = signer.Sign(bytes);
-                    if (!signResult.IsSuccess)
-                        return Result<Envelope>.Failure(signResult.Error);
+                    var sigResult = signer.ComputeSignature(bytes);
+                    if (!sigResult.IsSuccess)
+                        return Result<Envelope>.Failure(sigResult.Error);
 
-                    // NOTE: for now we assume the signer returns the *same bytes* (signature not embedded),
-                    // and you separately expose SignatureBlock via env.SigningOptions or signer.
-                    // If your current signer appends signature into bytes, you can:
-                    //   - leave bytes = signResult.Value
-                    //   - set Signature = null (envelope doesn't know)
-                    // and refactor signers later to expose SignatureBlock.
-                    bytes = signResult.Value;
-
-                    ops.Add(new OperationDescriptor
+                    signature = new SignatureBlock
                     {
-                        Kind = "sign",
                         AlgorithmId = env.SigningOptions.SigningType.ToString(),
-                        KeyId = env.SigningOptions.KeyId,
-                        Parameters = null
-                    });
-
-                    // TODO: when you change ISigner to expose signature separately:
-                    // signature = new SignatureBlock { AlgorithmId = ..., KeyId = ..., Value = macBytes };
+                        KeyId = signer.KeyId,
+                        Value = sigResult.Value
+                    };
                 }
 
+                // compression/encryption already updated bytes and ops
                 envelope.Payload = bytes;
-                envelope.Operations = ops;
-                envelope.Signature = signature; // currently null until signer is refactored
+                envelope.Operations = ops;       // only Compression / Encrypt
+                envelope.Signature = signature; // signature-only metadata
 
                 return Result<Envelope>.Success(envelope);
+
             };
+        }
+
+        private static FlowOperationPipeline<T> CreateAppendWritePipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore, string logicalKey)
+        {
+            // 1. Serializer
+            var serializerFactory = new SerializerFactory(env.SerializationOptions);
+            var serializer = serializerFactory.CreateSerializer(env.SerializationOptions.SerializationType);
+
+            // 2. Storage
+            var storageFactory = new StorageProviderFactory(env.StorageOptions);
+            var storage = storageFactory.CreateStorageProvider(env.StorageOptions.StorageType);
+
+            // 3. Per-record byte pipeline: compress -> encrypt -> sign (envelope-style)
+            var bytePipeline = BuildWriteBytesPipeline(env, keyStore);
+
+            async Task<Result> AppendAsync(T value)
+            {
+                // T -> bytes
+                var ser = serializer.Serialize(value);
+                if (!ser.IsSuccess)
+                    return Result.Failure(ser.Error);
+
+                // bytes -> signed envelope (HMAC wrapper etc.)
+                var pipe = await bytePipeline(ser.Value).ConfigureAwait(false);
+                if (!pipe.IsSuccess)
+                    return Result.Failure(pipe.Error);
+
+                var recordBytes = pipe.Value;
+
+                // Check existence (we need header only once)
+                var exists = await storage.ExistsAsync(logicalKey).ConfigureAwait(false);
+                if (!exists.IsSuccess)
+                    return Result.Failure(exists.Error);
+
+                if (!exists.Value)
+                {
+                    // First write: header + first record
+                    var headerEnv = CreateBaseEnvelope(env, logicalKey, Array.Empty<byte>());
+                    headerEnv.Signature = null; // header itself not signed
+
+                    var codec = CreateEnvelopeCodec(env);
+                    var headerResult = codec.Encode(headerEnv);
+                    if (!headerResult.IsSuccess)
+                        return Result.Failure(headerResult.Error);
+
+                    var headerBytes = headerResult.Value;
+                    var headerLenBytes = BitConverter.GetBytes(headerBytes.Length);
+                    var recLenBytes = BitConverter.GetBytes(recordBytes.Length);
+
+                    var combined = new byte[
+                        headerLenBytes.Length + headerBytes.Length +
+                        recLenBytes.Length + recordBytes.Length];
+
+                    Buffer.BlockCopy(headerLenBytes, 0, combined, 0, headerLenBytes.Length);
+                    Buffer.BlockCopy(headerBytes, 0, combined, headerLenBytes.Length, headerBytes.Length);
+                    Buffer.BlockCopy(recLenBytes, 0, combined, headerLenBytes.Length + headerBytes.Length, recLenBytes.Length);
+                    Buffer.BlockCopy(recordBytes, 0, combined, headerLenBytes.Length + headerBytes.Length + recLenBytes.Length, recordBytes.Length);
+
+                    return await storage.SaveAsync(logicalKey, combined).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Later writes: just append record
+                    var recLenBytes = BitConverter.GetBytes(recordBytes.Length);
+                    var frame = new byte[recLenBytes.Length + recordBytes.Length];
+                    Buffer.BlockCopy(recLenBytes, 0, frame, 0, recLenBytes.Length);
+                    Buffer.BlockCopy(recordBytes, 0, frame, recLenBytes.Length, recordBytes.Length);
+
+                    // DiskStorageProvider will append because DiskStorageOptions.Append == true
+                    return await storage.SaveAsync(logicalKey, frame).ConfigureAwait(false);
+                }
+            }
+
+            return new FlowOperationPipeline<T>(AppendAsync, readPath: null);
         }
 
 
@@ -446,37 +563,57 @@ namespace FlowSave.Operations.Builder
             return async envelope =>
             {
                 var bytes = envelope.Payload;
+                var ops = envelope.Operations;
 
-                // 1) Verify (reverse of sign)
-                bool signingEnabled =
-                    env.Operations != null &&
-                    env.Operations.Contains(OperationMode.Sign) &&
-                    env.SigningOptions != null &&
-                    env.SigningOptions.SigningType != SigningType.None;
-
-                if (signingEnabled)
+                // 1) Verify signature if present
+                if (envelope.Signature != null &&
+                    envelope.Signature.Value != null &&
+                    envelope.Signature.Value.Length > 0)
                 {
+                    if (env.SigningOptions == null)
+                        return Result<Envelope>.Failure("Envelope has signature but env.SigningOptions is null.");
+
+                    var sig = envelope.Signature;
+
+                    var signType = env.SigningOptions.SigningType;
+                    if (!string.IsNullOrEmpty(sig.AlgorithmId) &&
+                        Enum.TryParse(sig.AlgorithmId, ignoreCase: true, out SigningType parsedSignType))
+                    {
+                        signType = parsedSignType;
+                    }
+
                     var signerFactory = new SignerFactory(env.SigningOptions, keyStore);
-                    var signer = signerFactory.CreateSigner(env.SigningOptions.SigningType);
 
-                    var verResult = signer.Verify(bytes);
-                    if (!verResult.IsSuccess)
-                        return Result<Envelope>.Failure(verResult.Error);
+                    ISigner signer =
+                        !string.IsNullOrEmpty(sig.KeyId)
+                            ? signerFactory.CreateSigner(signType, sig.KeyId)
+                            : signerFactory.CreateSigner(signType);
 
-                    bytes = verResult.Value;
+                    var verifyResult = signer.VerifySignature(bytes, sig.Value);
+                    if (!verifyResult.IsSuccess)
+                        return Result<Envelope>.Failure(verifyResult.Error);
                 }
 
-                // 2) Decrypt
-                bool encryptionEnabled =
-                    env.Operations != null &&
-                    env.Operations.Contains(OperationMode.Encrypt) &&
-                    env.EncryptionOptions != null &&
-                    env.EncryptionOptions.EncryptionType != EncryptionType.None;
-
-                if (encryptionEnabled)
+                // 2) Decrypt (if there's an Encrypt op)
+                var encOp = ops?.FirstOrDefault(o => o.Kind == OperationMode.Encrypt);
+                if (encOp != null)
                 {
+                    if (env.EncryptionOptions == null)
+                        return Result<Envelope>.Failure("Envelope contains encrypt operation but env.EncryptionOptions is null.");
+
+                    var encType = env.EncryptionOptions.EncryptionType;
+                    if (!string.IsNullOrEmpty(encOp.AlgorithmId) &&
+                        Enum.TryParse(encOp.AlgorithmId, ignoreCase: true, out EncryptionType parsedEncType))
+                    {
+                        encType = parsedEncType;
+                    }
+
                     var encryptorFactory = new EncryptorFactory(env.EncryptionOptions, keyStore);
-                    var encryptor = encryptorFactory.CreateEncryptor(env.EncryptionOptions.EncryptionType);
+
+                    IEncryptor encryptor =
+                        !string.IsNullOrEmpty(encOp.KeyId)
+                            ? encryptorFactory.CreateEncryptor(encType, encOp.KeyId)
+                            : encryptorFactory.CreateEncryptor(encType);
 
                     var decResult = encryptor.Decrypt(bytes);
                     if (!decResult.IsSuccess)
@@ -485,17 +622,22 @@ namespace FlowSave.Operations.Builder
                     bytes = decResult.Value;
                 }
 
-                // 3) Decompress
-                bool compressionEnabled =
-                    env.Operations != null &&
-                    env.Operations.Contains(OperationMode.Compression) &&
-                    env.CompressionOptions != null &&
-                    env.CompressionOptions.CompressionType != CompressionType.None;
-
-                if (compressionEnabled)
+                // 3) Decompress (if there's a Compression op)
+                var compOp = ops?.FirstOrDefault(o => o.Kind == OperationMode.Compression);
+                if (compOp != null)
                 {
+                    if (env.CompressionOptions == null)
+                        return Result<Envelope>.Failure("Envelope contains compress operation but env.CompressionOptions is null.");
+
+                    var compType = env.CompressionOptions.CompressionType;
+                    if (!string.IsNullOrEmpty(compOp.AlgorithmId) &&
+                        Enum.TryParse(compOp.AlgorithmId, ignoreCase: true, out CompressionType parsedCompType))
+                    {
+                        compType = parsedCompType;
+                    }
+
                     var factory = new CompressorFactory();
-                    var compressor = factory.CreateCompressor(env.CompressionOptions.CompressionType);
+                    var compressor = factory.CreateCompressor(compType);
 
                     var decompResult = compressor.Decompress(bytes);
                     if (!decompResult.IsSuccess)
@@ -509,6 +651,49 @@ namespace FlowSave.Operations.Builder
             };
         }
 
+        private static FlowOperationPipeline<T> CreateAppendReadPipeline(EnvironmentConfiguration env, KeyStoreOptions keyStore, string logicalKey)
+        {
+            var readAll = CreateAppendReadAll(env, keyStore, logicalKey);
+
+            // For "normal" LoadAsync<T> on append mode, we can decide to return last entry:
+            async Task<Result<T>> ReadLastAsync()
+            {
+                var all = await readAll().ConfigureAwait(false);
+                if (!all.IsSuccess)
+                    return Result<T>.Failure(all.Error);
+
+                if (all.Value.Length == 0)
+                    return Result<T>.Failure("No entries in append log.");
+
+                return Result<T>.Success(all.Value[all.Value.Length - 1]);
+            }
+
+            return new FlowOperationPipeline<T>(
+                writePath: null,
+                readPath: ReadLastAsync);
+        }
+
+
+        // ------------------------------------------------------------
+        //  INTERNAL HELPERS
+        // ------------------------------------------------------------
+
+        private static ByteStep Chain(ByteStep current, ByteStep next)
+        {
+            if (current == null) return next;
+
+            return async bytes =>
+            {
+                var res = await current(bytes).ConfigureAwait(false);
+                if (!res.IsSuccess)
+                    return res;
+
+                return await next(res.Value).ConfigureAwait(false);
+            };
+        }
+
+        private static ByteStep IdentityStep =>
+            bytes => Task.FromResult(Result<byte[]>.Success(bytes));
 
         private static IEnvelopeCodec CreateEnvelopeCodec(EnvironmentConfiguration env)
         {
@@ -541,6 +726,5 @@ namespace FlowSave.Operations.Builder
                 Payload = payload
             };
         }
-
     }
 }

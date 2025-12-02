@@ -1,4 +1,4 @@
-﻿using Flowsave.KeyStorage;
+﻿using FlowSave.KeyStorage;
 using FlowSave.Configurations;
 using System;
 using UnityEditor;

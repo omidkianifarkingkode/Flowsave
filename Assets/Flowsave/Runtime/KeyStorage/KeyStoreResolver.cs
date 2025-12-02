@@ -3,7 +3,7 @@ using FlowSave.KeyStorage;
 using System;
 using System.Collections.Generic;
 
-namespace Flowsave.KeyStorage
+namespace FlowSave.KeyStorage
 {
     public sealed class KeyStoreResolver
     {
